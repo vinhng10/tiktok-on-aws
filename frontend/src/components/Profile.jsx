@@ -13,22 +13,34 @@ const videos = Array.from({ length: 10 }).map(
 
 const Profile = () => {
   return (
-    <>
-      <Avatar
-        variant="solid"
-        sx={{ height: "70px", width: "70px", marginTop: "5px" }}
-      />
+    <Box
+      p={0}
+      sx={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        height: "100%",
+      }}
+    >
+      <Avatar variant="solid" sx={{ width: 56, height: 56, mt: 1 }}></Avatar>
       <Typography variant="plain">Account Name</Typography>
-      <Typography variant="plain" gutterBottom>
-        123 Following | 456 Followers | 789 Total Likes
-      </Typography>
+      <Box gap={2} sx={{ display: "flex", justifyContent: "space-around" }}>
+        <Typography>Following: 123</Typography>
+        <Typography>Followers: 456</Typography>
+        <Typography>Likes: 789</Typography>
+      </Box>
       <Grid
         container
-        sx={{ flexGrow: 1, overflowY: "auto", scrollbarWidth: "none" }}
+        sx={{
+          height: "0px",
+          flexGrow: 1,
+          overflowY: "auto",
+          scrollbarWidth: "none",
+        }}
       >
         {videos.map((video, index) => (
           <Grid xs={4} key={index}>
-            <Card>
+            <Card sx={{ borderRadius: 0, border: "none" }}>
               <CardCover>
                 <video
                   autoPlay
@@ -49,7 +61,7 @@ const Profile = () => {
           </Grid>
         ))}
       </Grid>
-    </>
+    </Box>
   );
 };
 

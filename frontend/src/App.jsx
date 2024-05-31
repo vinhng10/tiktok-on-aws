@@ -6,6 +6,10 @@ import HomeIcon from "@mui/icons-material/Home";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
 import PersonIcon from "@mui/icons-material/Person";
 
+const videos = Array.from({ length: 10 }).map(
+  (_, index) => `Video ${index + 1}`
+);
+
 const App = () => {
   const [page, setPage] = useState("home");
 
@@ -30,29 +34,17 @@ const App = () => {
         right: 0,
       }}
     >
-      {page === "home" ? <Home /> : page === "profile" ? <Profile /> : <></>}
-      <BottomNavigation
-        sx={{
-          position: "sticky",
-          bottom: 0,
-          width: "100%",
-          backgroundColor: "#fff",
-        }}
-        value={page}
-        onChange={handleChange}
-      >
-        <BottomNavigationAction label="Home" value="home" icon={<HomeIcon />} />
-        <BottomNavigationAction
-          label="Create"
-          value="create"
-          icon={<AddCircleIcon />}
-        />
-        <BottomNavigationAction
-          label="Profile"
-          value="profile"
-          icon={<PersonIcon />}
-        />
-      </BottomNavigation>
+      <Box sx={{ flexGrow: 1, height: "100%", width: "100%" }}>
+        {page === "home" ? <Home /> : page === "profile" ? <Profile /> : <></>}
+      </Box>
+
+      <Box sx={{ marginTop: "auto", width: "100%" }}>
+        <BottomNavigation value={page} onChange={handleChange}>
+          <BottomNavigationAction value="home" icon={<HomeIcon />} />
+          <BottomNavigationAction value="create" icon={<AddCircleIcon />} />
+          <BottomNavigationAction value="profile" icon={<PersonIcon />} />
+        </BottomNavigation>
+      </Box>
     </Box>
   );
 };

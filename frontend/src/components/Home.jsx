@@ -24,7 +24,7 @@ const Home = () => {
   const [index, setIndex] = useState(0);
 
   return (
-    <Card sx={{ width: "100%", height: "100%", padding: 0, borderRadius: 0 }}>
+    <Card sx={{ height: "100%", padding: 0, border: "none", borderRadius: 0 }}>
       <CardCover>
         <video key={index} autoPlay loop muted>
           <source src={videos[index]} type="video/mp4" />
