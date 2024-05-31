@@ -16,6 +16,10 @@ import { useState } from "react";
 
 const Home = () => {
   const videos = [
+    "https://videos.pexels.com/video-files/6060027/6060027-hd_1080_1920_25fps.mp4",
+    "https://videos.pexels.com/video-files/15397891/15397891-hd_1080_1920_25fps.mp4",
+    "https://videos.pexels.com/video-files/7244811/7244811-hd_1080_1920_25fps.mp4",
+    "https://videos.pexels.com/video-files/20496059/20496059-hd_1080_1920_30fps.mp4",
     "https://videos.pexels.com/video-files/4053047/4053047-hd_1280_720_50fps.mp4",
     "https://videos.pexels.com/video-files/3969453/3969453-hd_1280_720_25fps.mp4",
     "https://videos.pexels.com/video-files/4065924/4065924-hd_1366_720_50fps.mp4",
@@ -42,8 +46,8 @@ const Home = () => {
           }}
         >
           <IconButton
-            variant="plain"
-            color="neutral"
+            variant="solid"
+            color="primary"
             sx={{
               width: 50,
               height: 50,
@@ -55,8 +59,8 @@ const Home = () => {
             <Avatar />
           </IconButton>
           <IconButton
-            variant="plain"
-            color="neutral"
+            variant="solid"
+            color="primary"
             sx={{
               width: 50,
               height: 50,
@@ -73,8 +77,8 @@ const Home = () => {
             />
           </IconButton>
           <IconButton
-            variant="plain"
-            color="neutral"
+            variant="solid"
+            color="primary"
             sx={{
               width: 50,
               height: 50,
@@ -91,8 +95,8 @@ const Home = () => {
             />
           </IconButton>
           <IconButton
-            variant="plain"
-            color="neutral"
+            variant="solid"
+            color="primary"
             sx={{
               width: 50,
               height: 50,
@@ -112,8 +116,8 @@ const Home = () => {
             />
           </IconButton>
           <IconButton
-            variant="plain"
-            color="neutral"
+            variant="solid"
+            color="primary"
             sx={{
               width: 50,
               height: 50,

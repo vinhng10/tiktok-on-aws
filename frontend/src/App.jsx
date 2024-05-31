@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Home, Profile } from "./components";
+import { Create, Home, Profile } from "./components";
 import { Box } from "@mui/joy";
 import { BottomNavigation, BottomNavigationAction } from "@mui/material";
 import HomeIcon from "@mui/icons-material/Home";
@@ -35,7 +35,15 @@ const App = () => {
       }}
     >
       <Box sx={{ flexGrow: 1, height: "100%", width: "100%" }}>
-        {page === "home" ? <Home /> : page === "profile" ? <Profile /> : <></>}
+        {page === "home" ? (
+          <Home />
+        ) : page === "profile" ? (
+          <Profile />
+        ) : page === "create" ? (
+          <Create />
+        ) : (
+          <></>
+        )}
       </Box>
 
       <Box sx={{ marginTop: "auto", width: "100%" }}>
