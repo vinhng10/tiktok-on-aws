@@ -7,14 +7,19 @@ import CardContent from "@mui/joy/CardContent";
 import Grid from "@mui/joy/Grid";
 import Typography from "@mui/joy/Typography";
 
-const videos = Array.from({ length: 10 }).map(
-  (_, index) => `Video ${index + 1}`
-);
-
 const Profile = () => {
+  const videos = [
+    "https://videos.pexels.com/video-files/6060027/6060027-hd_1080_1920_25fps.mp4",
+    "https://videos.pexels.com/video-files/15397891/15397891-hd_1080_1920_25fps.mp4",
+    "https://videos.pexels.com/video-files/7244811/7244811-hd_1080_1920_25fps.mp4",
+    "https://videos.pexels.com/video-files/20496059/20496059-hd_1080_1920_30fps.mp4",
+    "https://videos.pexels.com/video-files/4053047/4053047-hd_1280_720_50fps.mp4",
+    "https://videos.pexels.com/video-files/3969453/3969453-hd_1280_720_25fps.mp4",
+    "https://videos.pexels.com/video-files/4065924/4065924-hd_1366_720_50fps.mp4",
+    "https://videos.pexels.com/video-files/3969436/3969436-hd_1280_720_25fps.mp4",
+  ];
   return (
     <Box
-      p={0}
       sx={{
         display: "flex",
         flexDirection: "column",
@@ -36,27 +41,24 @@ const Profile = () => {
           flexGrow: 1,
           overflowY: "auto",
           scrollbarWidth: "none",
+          width: "100%",
         }}
       >
         {videos.map((video, index) => (
           <Grid xs={4} key={index}>
-            <Card sx={{ borderRadius: 0, border: "none" }}>
+            <Card
+              sx={{
+                borderRadius: 0,
+                border: "none",
+                height: "130px",
+              }}
+            >
               <CardCover>
-                <video
-                  autoPlay
-                  loop
-                  muted
-                  poster="https://assets.codepen.io/6093409/river.jpg"
-                >
-                  <source
-                    src="https://assets.codepen.io/6093409/river.mp4"
-                    type="video/mp4"
-                  />
+                <video autoPlay loop muted>
+                  <source src={video} type="video/mp4" />
                 </video>
               </CardCover>
-              <CardContent>
-                <Box height={130}></Box>
-              </CardContent>
+              <CardContent></CardContent>
             </Card>
           </Grid>
         ))}
