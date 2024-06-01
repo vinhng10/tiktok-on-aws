@@ -1,6 +1,4 @@
 import { useState } from "react";
-import UploadFileIcon from "@mui/icons-material/UploadFile";
-import PublishIcon from "@mui/icons-material/Publish";
 import {
   Box,
   Button,
@@ -8,7 +6,6 @@ import {
   CardContent,
   CardCover,
   Grid,
-  IconButton,
 } from "@mui/joy";
 
 const VideoUpload = () => {

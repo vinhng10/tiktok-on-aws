@@ -6,10 +6,6 @@ import HomeIcon from "@mui/icons-material/Home";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
 import PersonIcon from "@mui/icons-material/Person";
 
-const videos = Array.from({ length: 10 }).map(
-  (_, index) => `Video ${index + 1}`
-);
-
 const App = () => {
   const [page, setPage] = useState("home");
 

@@ -1,4 +1,3 @@
-import { BottomNavigation, BottomNavigationAction } from "@mui/material";
 import Avatar from "@mui/joy/Avatar";
 import Box from "@mui/joy/Box";
 import Card from "@mui/joy/Card";
@@ -18,6 +17,7 @@ const Profile = () => {
     "https://videos.pexels.com/video-files/4065924/4065924-hd_1366_720_50fps.mp4",
     "https://videos.pexels.com/video-files/3969436/3969436-hd_1280_720_25fps.mp4",
   ];
+
   return (
     <Box
       sx={{
