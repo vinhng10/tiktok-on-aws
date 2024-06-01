@@ -1,9 +1,16 @@
 import { useState } from "react";
 import { Box, Button, Card, CardContent, CardCover, Grid } from "@mui/joy";
-import { sharedClasses } from "./styles";
+import { combine, sharedClasses } from "./styles";
 
 const classes = {
-  card: { height: "100%", padding: 0, border: "none", borderRadius: 0 },
+  upload: { height: 80, width: 80, borderRadius: "50%", fontSize: 20 },
+  button: { opacity: 0.5, fontSize: 20 },
+  buttonGroup: {
+    width: "100%",
+    position: "absolute",
+    margin: "auto",
+    bottom: 0,
+  },
 };
 
 const VideoUpload = () => {
@@ -36,18 +43,7 @@ const VideoUpload = () => {
               variant="solid"
               color="neutral"
               component="label"
-              sx={{
-                margin: "auto",
-                position: "absolute",
-                top: 0,
-                bottom: 0,
-                left: 0,
-                right: 0,
-                height: 80,
-                width: 80,
-                borderRadius: "50%",
-                fontSize: 20,
-              }}
+              sx={combine(sharedClasses.centerInParent, classes.upload)}
             >
               Upload
               <input
@@ -59,22 +55,14 @@ const VideoUpload = () => {
               />
             </Button>
           ) : (
-            <Grid
-              container
-              sx={{
-                width: "100%",
-                position: "absolute",
-                margin: "auto",
-                bottom: 0,
-              }}
-            >
+            <Grid container sx={classes.buttonGroup}>
               <Grid xs={6}>
                 <Button
                   fullWidth
                   variant="solid"
                   color="danger"
                   onClick={() => setVideoSrc(null)}
-                  sx={{ opacity: 0.5 }}
+                  sx={classes.button}
                 >
                   Discard
                 </Button>
@@ -85,7 +73,7 @@ const VideoUpload = () => {
                   variant="solid"
                   color="success"
                   onClick={(e) => console.log(e)}
-                  sx={{ opacity: 0.5 }}
+                  sx={classes.button}
                 >
                   Publish
                 </Button>

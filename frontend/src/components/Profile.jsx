@@ -5,8 +5,7 @@ import CardCover from "@mui/joy/CardCover";
 import CardContent from "@mui/joy/CardContent";
 import Grid from "@mui/joy/Grid";
 import Typography from "@mui/joy/Typography";
-import { styles } from ".";
-const { combine, sharedClasses } = styles;
+import { combine, sharedClasses } from "./styles";
 
 const classes = {
   avatar: { width: 56, height: 56, mt: 1 },

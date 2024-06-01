@@ -13,8 +13,7 @@ import {
   IconButton,
 } from "@mui/joy";
 import { useState } from "react";
-import { styles } from ".";
-const { combine, sharedClasses } = styles;
+import { combine, sharedClasses } from "./styles";
 
 const classes = {
   buttonGroup: {
