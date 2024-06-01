@@ -1,12 +1,10 @@
 import { useState } from "react";
-import {
-  Box,
-  Button,
-  Card,
-  CardContent,
-  CardCover,
-  Grid,
-} from "@mui/joy";
+import { Box, Button, Card, CardContent, CardCover, Grid } from "@mui/joy";
+import { sharedClasses } from "./styles";
+
+const classes = {
+  card: { height: "100%", padding: 0, border: "none", borderRadius: 0 },
+};
 
 const VideoUpload = () => {
   const [videoSrc, setVideoSrc] = useState(null);
@@ -25,7 +23,7 @@ const VideoUpload = () => {
   };
 
   return (
-    <Card sx={{ height: "100%", padding: 0, border: "none", borderRadius: 0 }}>
+    <Card sx={sharedClasses.card}>
       <CardCover>
         <video key={videoSrc} autoPlay loop muted>
           <source src={videoSrc} type="video/mp4" />

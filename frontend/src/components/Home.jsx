@@ -13,6 +13,24 @@ import {
   IconButton,
 } from "@mui/joy";
 import { useState } from "react";
+import { styles } from ".";
+const { combine, sharedClasses } = styles;
+
+const classes = {
+  buttonGroup: {
+    position: "absolute",
+    gap: 2,
+    bottom: 10,
+    right: 10,
+  },
+  iconButton: {
+    width: 50,
+    height: 50,
+    borderRadius: "50%",
+    color: "#ffffff",
+    padding: 0,
+  },
+};
 
 const Home = () => {
   const videos = [
@@ -28,113 +46,42 @@ const Home = () => {
   const [index, setIndex] = useState(0);
 
   return (
-    <Card sx={{ height: "100%", padding: 0, border: "none", borderRadius: 0 }}>
+    <Card sx={sharedClasses.card}>
       <CardCover>
         <video key={index} autoPlay loop muted>
           <source src={videos[index]} type="video/mp4" />
         </video>
       </CardCover>
       <CardContent>
-        <Box
-          sx={{
-            position: "absolute",
-            bottom: 10,
-            right: 10,
-            display: "flex",
-            flexDirection: "column",
-            gap: 2,
-          }}
-        >
-          <IconButton
-            variant="solid"
-            color="primary"
-            sx={{
-              width: 50,
-              height: 50,
-              borderRadius: "50%",
-              color: "#ffffff",
-              padding: 0,
-            }}
-          >
+        <Box sx={combine(sharedClasses.flexColumn, classes.buttonGroup)}>
+          <IconButton variant="solid" color="primary" sx={classes.iconButton}>
             <Avatar />
           </IconButton>
-          <IconButton
-            variant="solid"
-            color="primary"
-            sx={{
-              width: 50,
-              height: 50,
-              borderRadius: "50%",
-              color: "#ffffff",
-              padding: 0,
-            }}
-          >
-            <AddCircle
-              sx={{
-                width: "100%",
-                height: "100%",
-              }}
-            />
+          <IconButton variant="solid" color="primary" sx={classes.iconButton}>
+            <AddCircle sx={sharedClasses.fitParent} />
+          </IconButton>
+          <IconButton variant="solid" color="primary" sx={classes.iconButton}>
+            <Favorite sx={sharedClasses.fitParent} />
           </IconButton>
           <IconButton
             variant="solid"
             color="primary"
-            sx={{
-              width: 50,
-              height: 50,
-              borderRadius: "50%",
-              color: "#ffffff",
-              padding: 0,
-            }}
-          >
-            <Favorite
-              sx={{
-                width: "100%",
-                height: "100%",
-              }}
-            />
-          </IconButton>
-          <IconButton
-            variant="solid"
-            color="primary"
-            sx={{
-              width: 50,
-              height: 50,
-              borderRadius: "50%",
-              color: "#ffffff",
-              padding: 0,
-            }}
+            sx={classes.iconButton}
             onClick={() => {
               setIndex(Math.max(index - 1, 0) % videos.length);
             }}
           >
-            <KeyboardArrowUp
-              sx={{
-                width: "100%",
-                height: "100%",
-              }}
-            />
+            <KeyboardArrowUp sx={sharedClasses.fitParent} />
           </IconButton>
           <IconButton
             variant="solid"
             color="primary"
-            sx={{
-              width: 50,
-              height: 50,
-              borderRadius: "50%",
-              color: "#ffffff",
-              padding: 0,
-            }}
+            sx={classes.iconButton}
             onClick={() => {
               setIndex((index + 1) % videos.length);
             }}
           >
-            <KeyboardArrowDown
-              sx={{
-                width: "100%",
-                height: "100%",
-              }}
-            />
+            <KeyboardArrowDown sx={sharedClasses.fitParent} />
           </IconButton>
         </Box>
       </CardContent>

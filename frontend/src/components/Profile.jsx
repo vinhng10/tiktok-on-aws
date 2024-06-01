@@ -5,6 +5,25 @@ import CardCover from "@mui/joy/CardCover";
 import CardContent from "@mui/joy/CardContent";
 import Grid from "@mui/joy/Grid";
 import Typography from "@mui/joy/Typography";
+import { styles } from ".";
+const { combine, sharedClasses } = styles;
+
+const classes = {
+  avatar: { width: 56, height: 56, mt: 1 },
+  stats: { display: "flex", justifyContent: "space-around" },
+  grid: {
+    height: "0px",
+    flexGrow: 1,
+    overflowY: "auto",
+    scrollbarWidth: "none",
+    width: "100%",
+  },
+  gridItem: {
+    borderRadius: 0,
+    border: "none",
+    height: "130px",
+  },
+};
 
 const Profile = () => {
   const videos = [
@@ -20,39 +39,21 @@ const Profile = () => {
 
   return (
     <Box
-      sx={{
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
+      sx={combine(sharedClasses.flexColumn, {
         height: "100%",
-      }}
+      })}
     >
-      <Avatar variant="solid" sx={{ width: 56, height: 56, mt: 1 }}></Avatar>
+      <Avatar variant="solid" sx={classes.avatar}></Avatar>
       <Typography variant="plain">Account Name</Typography>
-      <Box gap={2} sx={{ display: "flex", justifyContent: "space-around" }}>
+      <Box gap={2} sx={classes.stats}>
         <Typography>Following: 123</Typography>
         <Typography>Followers: 456</Typography>
         <Typography>Likes: 789</Typography>
       </Box>
-      <Grid
-        container
-        sx={{
-          height: "0px",
-          flexGrow: 1,
-          overflowY: "auto",
-          scrollbarWidth: "none",
-          width: "100%",
-        }}
-      >
+      <Grid container sx={classes.grid}>
         {videos.map((video, index) => (
           <Grid xs={4} key={index}>
-            <Card
-              sx={{
-                borderRadius: 0,
-                border: "none",
-                height: "130px",
-              }}
-            >
+            <Card sx={classes.gridItem}>
               <CardCover>
                 <video autoPlay loop muted>
                   <source src={video} type="video/mp4" />
