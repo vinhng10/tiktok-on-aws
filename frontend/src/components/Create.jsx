@@ -13,7 +13,7 @@ const classes = {
   },
 };
 
-const VideoUpload = () => {
+const Create = () => {
   const [videoSrc, setVideoSrc] = useState(null);
 
   const handleVideoUpload = (event) => {
@@ -86,4 +86,4 @@ const VideoUpload = () => {
   );
 };
 
-export default VideoUpload;
+export default Create;
