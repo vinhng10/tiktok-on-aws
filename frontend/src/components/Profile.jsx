@@ -1,3 +1,4 @@
+import { Logout } from "@mui/icons-material";
 import Avatar from "@mui/joy/Avatar";
 import Box from "@mui/joy/Box";
 import Card from "@mui/joy/Card";
@@ -6,6 +7,7 @@ import CardContent from "@mui/joy/CardContent";
 import Grid from "@mui/joy/Grid";
 import Typography from "@mui/joy/Typography";
 import { combine, sharedClasses } from "./styles";
+import { IconButton } from "@mui/joy";
 
 const classes = {
   avatar: { width: 56, height: 56, mt: 1 },
@@ -21,6 +23,15 @@ const classes = {
     borderRadius: 0,
     border: "none",
     height: "130px",
+  },
+  iconButton: {
+    width: 20,
+    height: 20,
+    borderRadius: "50%",
+    padding: "2px",
+    position: "absolute",
+    right: 0,
+    margin: 1,
   },
 };
 
@@ -42,7 +53,23 @@ const Profile = () => {
         height: "100%",
       })}
     >
-      <Avatar variant="solid" sx={classes.avatar}></Avatar>
+      <IconButton
+        variant="outlined"
+        color="primary"
+        sx={classes.iconButton}
+        onClick={() => {
+          sessionStorage.clear();
+          window.location.href =
+            "https://tiktok-clone.auth.us-east-1.amazoncognito.com/logout?" +
+            new URLSearchParams({
+              client_id: import.meta.env.VITE_CLIENT_ID,
+              logout_uri: import.meta.env.VITE_REDIRECT_URI,
+            });
+        }}
+      >
+        <Logout sx={sharedClasses.fitParent} />
+      </IconButton>
+      <Avatar variant="solid" sx={classes.avatar} />
       <Typography variant="plain">Account Name</Typography>
       <Box gap={2} sx={classes.stats}>
         <Typography>Following: 123</Typography>

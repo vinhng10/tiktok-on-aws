@@ -27,7 +27,7 @@ const classes = {
     height: 50,
     borderRadius: "50%",
     color: "#ffffff",
-    padding: 0,
+    padding: "2px",
   },
 };
 
