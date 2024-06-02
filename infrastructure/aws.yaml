@@ -5,6 +5,7 @@ Parameters:
   BucketName:
     Description: Name of the S3 bucket
     Type: String
+
   Region:
     Description: AWS Region for the S3 bucket
     Type: String
@@ -30,6 +31,14 @@ Parameters:
       - af-south-1
     Default: us-east-1
 
+  UserPoolName:
+    Type: String
+    Description: Name of the Cognito User Pool
+
+  AppClientName:
+    Type: String
+    Description: Name of the Cognito App Client
+
 Resources:
   S3Bucket:
     Type: "AWS::S3::Bucket"
@@ -52,10 +61,87 @@ Resources:
             Resource:
               - !Sub "arn:aws:s3:::${BucketName}/*"
 
+  CognitoUserPool:
+    Type: "AWS::Cognito::UserPool"
+    Properties:
+      UserPoolName: !Ref UserPoolName
+      MfaConfiguration: "OFF"
+      UsernameAttributes:
+        - "email"
+      AutoVerifiedAttributes:
+        - "email"
+
+  CognitoUserPoolClient:
+    Type: "AWS::Cognito::UserPoolClient"
+    Properties:
+      ClientName: !Ref AppClientName
+      UserPoolId: !Ref CognitoUserPool
+      GenerateSecret: false
+      AllowedOAuthFlows:
+        - code
+      AllowedOAuthFlowsUserPoolClient: true
+      AllowedOAuthScopes:
+        - email
+        - openid
+        - profile
+      CallbackURLs:
+        - !GetAtt CloudFrontDistribution.DomainName
+        - "http://localhost:5173"
+      LogoutURLs:
+        - !GetAtt CloudFrontDistribution.DomainName
+        - "http://localhost:5173"
+      SupportedIdentityProviders:
+        - COGNITO
+
+  CloudFrontDistribution:
+    Type: "AWS::CloudFront::Distribution"
+    Properties:
+      DistributionConfig:
+        Origins:
+          - DomainName: !GetAtt S3Bucket.WebsiteURL
+            Id: !Ref S3Bucket
+            CustomOriginConfig:
+              HTTPPort: 80
+              OriginProtocolPolicy: http-only
+        DefaultCacheBehavior:
+          TargetOriginId: !Ref S3Bucket
+          ViewerProtocolPolicy: https-only
+          AllowedMethods:
+            - GET
+            - HEAD
+            - OPTIONS
+            - PUT
+            - POST
+            - PATCH
+            - DELETE
+          CachedMethods:
+            - GET
+            - HEAD
+            - OPTIONS
+        PriceClass: PriceClass_100
+        Enabled: true
+
 Outputs:
   BucketName:
     Description: Name of the S3 bucket
     Value: !Ref S3Bucket
+
   BucketWebsiteURL:
     Description: URL of the S3 bucket website
     Value: !GetAtt S3Bucket.WebsiteURL
+
+  UserPoolId:
+    Description: The ID of the Cognito User Pool
+    Value: !Ref CognitoUserPool
+
+  UserPoolClientId:
+    Description: The ID of the Cognito User Pool App Client
+    Value: !Ref CognitoUserPoolClient
+
+    CloudFrontDistributionId:
+    Description: ID of the CloudFront distribution
+    Value: !Ref CloudFrontDistribution
+
+  CloudFrontDistributionDomainName:
+    Description: Domain name of the CloudFront distribution
+    Value: !GetAtt CloudFrontDistribution.DomainName
