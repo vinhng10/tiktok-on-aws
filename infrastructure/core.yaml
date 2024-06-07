@@ -35,16 +35,28 @@ Parameters:
     Type: String
     Description: Name of the Cognito User Pool
 
+  UserPoolDomain:
+    Type: String
+    Description: Domain of the Cognito User Pool
+
   AppClientName:
     Type: String
     Description: Name of the Cognito App Client
+
+  CloudFrontCachePolicyId:
+    Type: String
+    Description: ID of cache policy (currently use managed policy)
 
 Resources:
   S3Bucket:
     Type: "AWS::S3::Bucket"
     Properties:
       BucketName: !Ref BucketName
-      AccessControl: PublicRead
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: false
+        BlockPublicPolicy: false
+        IgnorePublicAcls: false
+        RestrictPublicBuckets: false
       WebsiteConfiguration:
         IndexDocument: index.html
         ErrorDocument: error.html
@@ -54,6 +66,7 @@ Resources:
     Properties:
       Bucket: !Ref S3Bucket
       PolicyDocument:
+        Version: "2012-10-17"
         Statement:
           - Effect: Allow
             Principal: "*"
@@ -71,6 +84,12 @@ Resources:
       AutoVerifiedAttributes:
         - "email"
 
+  CognitoUserPoolDomain:
+    Type: AWS::Cognito::UserPoolDomain
+    Properties:
+      Domain: !Ref UserPoolDomain
+      UserPoolId: !Ref CognitoUserPool
+
   CognitoUserPoolClient:
     Type: "AWS::Cognito::UserPoolClient"
     Properties:
@@ -83,12 +102,16 @@ Resources:
       AllowedOAuthScopes:
         - email
         - openid
-        - profile
+        - phone
       CallbackURLs:
-        - !GetAtt CloudFrontDistribution.DomainName
+        - !Sub
+          - "https://${Domain}"
+          - Domain: !GetAtt CloudFrontDistribution.DomainName
         - "http://localhost:5173"
       LogoutURLs:
-        - !GetAtt CloudFrontDistribution.DomainName
+        - !Sub
+          - "https://${Domain}"
+          - Domain: !GetAtt CloudFrontDistribution.DomainName
         - "http://localhost:5173"
       SupportedIdentityProviders:
         - COGNITO
@@ -98,13 +121,14 @@ Resources:
     Properties:
       DistributionConfig:
         Origins:
-          - DomainName: !GetAtt S3Bucket.WebsiteURL
+          - DomainName: !Select [2, !Split ["/", !GetAtt S3Bucket.WebsiteURL]]
             Id: !Ref S3Bucket
             CustomOriginConfig:
               HTTPPort: 80
               OriginProtocolPolicy: http-only
         DefaultCacheBehavior:
           TargetOriginId: !Ref S3Bucket
+          CachePolicyId: !Ref CloudFrontCachePolicyId
           ViewerProtocolPolicy: https-only
           AllowedMethods:
             - GET
@@ -138,7 +162,7 @@ Outputs:
     Description: The ID of the Cognito User Pool App Client
     Value: !Ref CognitoUserPoolClient
 
-    CloudFrontDistributionId:
+  CloudFrontDistributionId:
     Description: ID of the CloudFront distribution
     Value: !Ref CloudFrontDistribution
 

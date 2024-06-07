@@ -22,22 +22,18 @@ const App = () => {
       const code = urlParams.get("code");
 
       if (code) {
-        console.log("===>", page, code);
-        fetch(
-          "https://tiktok-clone.auth.us-east-1.amazoncognito.com/oauth2/token",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/x-www-form-urlencoded",
-            },
-            body: new URLSearchParams({
-              grant_type: "authorization_code",
-              client_id: import.meta.env.VITE_CLIENT_ID,
-              code: code,
-              redirect_uri: import.meta.env.VITE_REDIRECT_URI,
-            }),
-          }
-        )
+        fetch(`${import.meta.env.VITE_AUTH_URL}/oauth2/token`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+          body: new URLSearchParams({
+            grant_type: "authorization_code",
+            client_id: import.meta.env.VITE_CLIENT_ID,
+            code: code,
+            redirect_uri: import.meta.env.VITE_REDIRECT_URI,
+          }),
+        })
           .then((response) => response.json())
           .then((data) => {
             if (!data.hasOwnProperty("error")) {
@@ -49,12 +45,15 @@ const App = () => {
           })
           .catch((error) => console.error("Error:", error));
       } else {
-        console.log("window.location.href");
-        window.location.href = `https://tiktok-clone.auth.us-east-1.amazoncognito.com/login?client_id=${
-          import.meta.env.VITE_CLIENT_ID
-        }&response_type=code&scope=email+openid+phone&redirect_uri=${
-          import.meta.env.VITE_REDIRECT_URI
-        }`;
+        const params = new URLSearchParams({
+          client_id: import.meta.env.VITE_CLIENT_ID,
+          response_type: "code",
+          scope: "email+openid+phone",
+          redirect_uri: import.meta.env.VITE_REDIRECT_URI,
+        });
+        window.location.href =
+          `${import.meta.env.VITE_AUTH_URL}/login?` +
+          params.toString().replace(/%2B/g, "+");
       }
     } else {
       setPage("home");
