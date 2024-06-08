@@ -1,5 +1,4 @@
 [
-  { "ParameterKey": "Region", "ParameterValue": "us-east-1" },
   { "ParameterKey": "BucketName", "ParameterValue": "tiktok-clone" },
   { "ParameterKey": "UserPoolName", "ParameterValue": "tiktok-clone" },
   {
@@ -13,5 +12,29 @@
   {
     "ParameterKey": "CloudFrontCachePolicyId",
     "ParameterValue": "658327ea-f89d-4fab-a63d-7e88639e58f6"
+  },
+  {
+    "ParameterKey": "VPCName",
+    "ParameterValue": "tiktok-clone"
+  },
+  {
+    "ParameterKey": "VPCCidrBlock",
+    "ParameterValue": "10.0.0.0/16"
+  },
+  {
+    "ParameterKey": "PublicSubnet1CidrBlock",
+    "ParameterValue": "10.0.0.0/24"
+  },
+  {
+    "ParameterKey": "PublicSubnet2CidrBlock",
+    "ParameterValue": "10.0.1.0/24"
+  },
+  {
+    "ParameterKey": "PrivateSubnet1CidrBlock",
+    "ParameterValue": "10.0.2.0/24"
+  },
+  {
+    "ParameterKey": "PrivateSubnet2CidrBlock",
+    "ParameterValue": "10.0.3.0/24"
   }
 ]

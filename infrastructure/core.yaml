@@ -6,31 +6,6 @@ Parameters:
     Description: Name of the S3 bucket
     Type: String
 
-  Region:
-    Description: AWS Region for the S3 bucket
-    Type: String
-    AllowedValues:
-      - us-east-1
-      - us-west-1
-      - us-west-2
-      - eu-west-1
-      - eu-central-1
-      - ap-southeast-1
-      - ap-southeast-2
-      - ap-northeast-1
-      - ap-northeast-2
-      - sa-east-1
-      - ca-central-1
-      - cn-north-1
-      - cn-northwest-1
-      - eu-west-2
-      - eu-west-3
-      - eu-north-1
-      - ap-south-1
-      - me-south-1
-      - af-south-1
-    Default: us-east-1
-
   UserPoolName:
     Type: String
     Description: Name of the Cognito User Pool
@@ -46,6 +21,35 @@ Parameters:
   CloudFrontCachePolicyId:
     Type: String
     Description: ID of cache policy (currently use managed policy)
+
+  VPCName:
+    Type: String
+    Description: Name of VPC
+
+  VPCCidrBlock:
+    Type: String
+    Default: 10.0.0.0/16
+    Description: CIDR block for the VPC
+
+  PublicSubnet1CidrBlock:
+    Type: String
+    Default: 10.0.0.0/24
+    Description: CIDR block for public subnet 1
+
+  PublicSubnet2CidrBlock:
+    Type: String
+    Default: 10.0.1.0/24
+    Description: CIDR block for public subnet 2
+
+  PrivateSubnet1CidrBlock:
+    Type: String
+    Default: 10.0.2.0/24
+    Description: CIDR block for private subnet 1
+
+  PrivateSubnet2CidrBlock:
+    Type: String
+    Default: 10.0.3.0/24
+    Description: CIDR block for private subnet 2
 
 Resources:
   S3Bucket:
@@ -144,6 +148,125 @@ Resources:
             - OPTIONS
         PriceClass: PriceClass_100
         Enabled: true
+
+  # VPC
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref VPCCidrBlock
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: vpc
+
+  # Internet Gateway
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: internet-gateway
+
+  AttachGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref InternetGateway
+
+  # Public Subnets
+  PublicSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !Ref PublicSubnet1CidrBlock
+      AvailabilityZone: !Select [0, !GetAZs ]
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: public-subnet-1
+
+  PublicSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !Ref PublicSubnet2CidrBlock
+      AvailabilityZone: !Select [1, !GetAZs ]
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: public-subnet-2
+
+  # Private Subnets
+  PrivateSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !Ref PrivateSubnet1CidrBlock
+      AvailabilityZone: !Select [0, !GetAZs ]
+      Tags:
+        - Key: Name
+          Value: private-subnet-1
+
+  PrivateSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !Ref PrivateSubnet2CidrBlock
+      AvailabilityZone: !Select [1, !GetAZs ]
+      Tags:
+        - Key: Name
+          Value: private-subnet-2
+
+  # Route Tables
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: public-route-table
+
+  PrivateRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: private-route-table
+
+  # Routes
+  PublicRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  # Subnet Route Table Associations
+  PublicSubnet1RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet1
+      RouteTableId: !Ref PublicRouteTable
+
+  PublicSubnet2RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet2
+      RouteTableId: !Ref PublicRouteTable
+
+  PrivateSubnet1RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnet1
+      RouteTableId: !Ref PrivateRouteTable
+
+  PrivateSubnet2RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnet2
+      RouteTableId: !Ref PrivateRouteTable
 
 Outputs:
   BucketName:
