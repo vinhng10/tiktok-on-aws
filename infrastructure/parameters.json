@@ -1,14 +1,14 @@
 [
   { "ParameterKey": "Region", "ParameterValue": "us-east-1" },
-  { "ParameterKey": "BucketName", "ParameterValue": "tiktok-clone-on-aws-2" },
-  { "ParameterKey": "UserPoolName", "ParameterValue": "tiktok-clone-on-aws-2" },
+  { "ParameterKey": "BucketName", "ParameterValue": "tiktok-clone" },
+  { "ParameterKey": "UserPoolName", "ParameterValue": "tiktok-clone" },
   {
     "ParameterKey": "UserPoolDomain",
-    "ParameterValue": "tiktok-clone-2"
+    "ParameterValue": "tiktok-clone"
   },
   {
     "ParameterKey": "AppClientName",
-    "ParameterValue": "tiktok-clone-on-aws-2"
+    "ParameterValue": "tiktok-clone"
   },
   {
     "ParameterKey": "CloudFrontCachePolicyId",
