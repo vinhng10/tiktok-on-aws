@@ -1,0 +1,63 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: CloudFormation template to create an S3 bucket with public access,
+  static web hosting, and a specific bucket policy.
+
+Resources:
+  CognitoUserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolName: tiktok-daniella
+      MfaConfiguration: 'OFF'
+      UsernameAttributes:
+        - email
+      AutoVerifiedAttributes:
+        - email
+
+  CognitoUserPoolDomain:
+    Type: AWS::Cognito::UserPoolDomain
+    Properties:
+      Domain: tiktok-daniella
+      UserPoolId: !Ref CognitoUserPool
+
+  CognitoUserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      ClientName: tiktok-daniella
+      UserPoolId: !Ref CognitoUserPool
+      GenerateSecret: false
+      AllowedOAuthFlows:
+        - code
+      AllowedOAuthFlowsUserPoolClient: true
+      AllowedOAuthScopes:
+        - email
+        - openid
+        - phone
+      CallbackURLs:
+        - !ImportValue distribution-domain
+        - http://localhost:5173
+      LogoutURLs:
+        - !ImportValue distribution-domain
+        - http://localhost:5173
+      SupportedIdentityProviders:
+        - COGNITO
+
+Outputs:
+  UserPoolId:
+    Description: The ID of the Cognito User Pool
+    Value: !Ref CognitoUserPool
+    Export:
+      Name: userpool-id
+
+  UserPoolClientId:
+    Description: The ID of the Cognito User Pool App Client
+    Value: !Ref CognitoUserPoolClient
+    Export:
+      Name: userpool-client-id
+
+  UserPoolDomainURL:
+    Description: Domain of the Cognito User Pool
+    Value: !Sub
+      - https://${Domain}.auth.${AWS::Region}.amazoncognito.com
+      - Domain: !Ref CognitoUserPoolDomain
+    Export:
+      Name: userpool-url

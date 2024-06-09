@@ -1,0 +1,84 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: CloudFormation template to create an S3 bucket with public access, static web hosting, and a specific bucket policy.
+
+Parameters:
+  CloudFrontCachePolicyId:
+    Type: String
+    Description: ID of cache policy (currently use managed policy)
+
+Resources:
+  S3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: tiktok-daniella
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: false
+        BlockPublicPolicy: false
+        IgnorePublicAcls: false
+        RestrictPublicBuckets: false
+      WebsiteConfiguration:
+        IndexDocument: index.html
+        ErrorDocument: error.html
+
+  BucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref S3Bucket
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal: "*"
+            Action: s3:GetObject
+            Resource:
+              - !Sub arn:aws:s3:::tiktok-daniella/*
+
+  CloudFrontDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Origins:
+          - DomainName: !Select [2, !Split [/, !GetAtt S3Bucket.WebsiteURL]]
+            Id: !Ref S3Bucket
+            CustomOriginConfig:
+              HTTPPort: 80
+              OriginProtocolPolicy: http-only
+        DefaultCacheBehavior:
+          TargetOriginId: !Ref S3Bucket
+          CachePolicyId: !Ref CloudFrontCachePolicyId
+          ViewerProtocolPolicy: https-only
+          AllowedMethods:
+            - GET
+            - HEAD
+            - OPTIONS
+            - PUT
+            - POST
+            - PATCH
+            - DELETE
+          CachedMethods:
+            - GET
+            - HEAD
+            - OPTIONS
+        PriceClass: PriceClass_100
+        Enabled: true
+
+Outputs:
+  BucketWebsiteURL:
+    Description: URL of the UI website
+    Value: !GetAtt S3Bucket.WebsiteURL
+    Export:
+      Name: ui-url
+
+  CloudFrontDistributionId:
+    Description: ID of the CloudFront distribution
+    Value: !Ref CloudFrontDistribution
+    Export:
+      Name: distribution-id
+
+  CloudFrontDistributionDomainName:
+    Description: Domain name of the CloudFront distribution
+    Value: !Sub
+      - https://${Domain}
+      - Domain: !GetAtt CloudFrontDistribution.DomainName
+    Export:
+      Name: distribution-domain
