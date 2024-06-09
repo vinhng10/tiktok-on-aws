@@ -1,30 +1,10 @@
-AWSTemplateFormatVersion: "2010-09-09"
+AWSTemplateFormatVersion: 2010-09-09
 Description: CloudFormation template to create an S3 bucket with public access, static web hosting, and a specific bucket policy.
 
 Parameters:
-  BucketName:
-    Description: Name of the S3 bucket
-    Type: String
-
-  UserPoolName:
-    Type: String
-    Description: Name of the Cognito User Pool
-
-  UserPoolDomain:
-    Type: String
-    Description: Domain of the Cognito User Pool
-
-  AppClientName:
-    Type: String
-    Description: Name of the Cognito App Client
-
   CloudFrontCachePolicyId:
     Type: String
     Description: ID of cache policy (currently use managed policy)
-
-  VPCName:
-    Type: String
-    Description: Name of VPC
 
   VPCCidrBlock:
     Type: String
@@ -51,11 +31,27 @@ Parameters:
     Default: 10.0.3.0/24
     Description: CIDR block for private subnet 2
 
+  NeptuneVersion:
+    Type: String
+    Description: Neptune engine version
+
+  NeptuneClusterParameterGroup:
+    Type: String
+    Description: Neptune engine version
+
+  NeptuneServerlessMinCapacity:
+    Type: Number
+    Description: Neptune min scaling capacity in serverless mode
+
+  NeptuneServerlessMaxCapacity:
+    Type: Number
+    Description: Neptune max scaling capacity in serverless mode
+
 Resources:
   S3Bucket:
-    Type: "AWS::S3::Bucket"
+    Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Ref BucketName
+      BucketName: tiktok-daniella
       PublicAccessBlockConfiguration:
         BlockPublicAcls: false
         BlockPublicPolicy: false
@@ -66,38 +62,38 @@ Resources:
         ErrorDocument: error.html
 
   BucketPolicy:
-    Type: "AWS::S3::BucketPolicy"
+    Type: AWS::S3::BucketPolicy
     Properties:
       Bucket: !Ref S3Bucket
       PolicyDocument:
-        Version: "2012-10-17"
+        Version: 2012-10-17
         Statement:
           - Effect: Allow
-            Principal: "*"
-            Action: "s3:GetObject"
+            Principal: *
+            Action: s3:GetObject
             Resource:
-              - !Sub "arn:aws:s3:::${BucketName}/*"
+              - !Sub arn:aws:s3:::tiktok-daniella/*
 
   CognitoUserPool:
-    Type: "AWS::Cognito::UserPool"
+    Type: AWS::Cognito::UserPool
     Properties:
-      UserPoolName: !Ref UserPoolName
-      MfaConfiguration: "OFF"
+      UserPoolName: tiktok-daniella
+      MfaConfiguration: OFF
       UsernameAttributes:
-        - "email"
+        - email
       AutoVerifiedAttributes:
-        - "email"
+        - email
 
   CognitoUserPoolDomain:
     Type: AWS::Cognito::UserPoolDomain
     Properties:
-      Domain: !Ref UserPoolDomain
+      Domain: tiktok-daniella
       UserPoolId: !Ref CognitoUserPool
 
   CognitoUserPoolClient:
-    Type: "AWS::Cognito::UserPoolClient"
+    Type: AWS::Cognito::UserPoolClient
     Properties:
-      ClientName: !Ref AppClientName
+      ClientName: tiktok-daniella
       UserPoolId: !Ref CognitoUserPool
       GenerateSecret: false
       AllowedOAuthFlows:
@@ -109,23 +105,23 @@ Resources:
         - phone
       CallbackURLs:
         - !Sub
-          - "https://${Domain}"
+          - https://${Domain}
           - Domain: !GetAtt CloudFrontDistribution.DomainName
-        - "http://localhost:5173"
+        - http://localhost:5173
       LogoutURLs:
         - !Sub
-          - "https://${Domain}"
+          - https://${Domain}
           - Domain: !GetAtt CloudFrontDistribution.DomainName
-        - "http://localhost:5173"
+        - http://localhost:5173
       SupportedIdentityProviders:
         - COGNITO
 
   CloudFrontDistribution:
-    Type: "AWS::CloudFront::Distribution"
+    Type: AWS::CloudFront::Distribution
     Properties:
       DistributionConfig:
         Origins:
-          - DomainName: !Select [2, !Split ["/", !GetAtt S3Bucket.WebsiteURL]]
+          - DomainName: !Select [2, !Split [/, !GetAtt S3Bucket.WebsiteURL]]
             Id: !Ref S3Bucket
             CustomOriginConfig:
               HTTPPort: 80
@@ -158,7 +154,7 @@ Resources:
       EnableDnsHostnames: true
       Tags:
         - Key: Name
-          Value: vpc
+          Value: tiktok-daniella
 
   # Internet Gateway
   InternetGateway:
@@ -268,27 +264,80 @@ Resources:
       SubnetId: !Ref PrivateSubnet2
       RouteTableId: !Ref PrivateRouteTable
 
+  # Neptune cluster:
+  SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow TCP port 8182
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 8182
+          ToPort: 8182
+          CidrIp: 0.0.0.0/0
+      VpcId: !Ref VPC
+
+  NeptuneSubnetGroup:
+    Type: AWS::Neptune::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: Subnet group for Neptune cluster
+      SubnetIds:
+        - !Ref PrivateSubnet1
+        - !Ref PrivateSubnet2
+      DBSubnetGroupName: neptune-subnet-group
+
+  NeptuneCluster:
+    Type: AWS::Neptune::DBCluster
+    Properties:
+      DBClusterIdentifier: tiktok-daniella
+      EngineVersion: !Ref NeptuneVersion
+      DBSubnetGroupName: !Ref NeptuneSubnetGroup
+      VpcSecurityGroupIds:
+        - !Ref SecurityGroup
+      ServerlessScalingConfiguration:
+        MaxCapacity: 10
+        MinCapacity: 1
+      DeletionProtection: false
+      IamAuthEnabled: false
+      StorageEncrypted: true
+
+  NeptuneInstance:
+    Type: AWS::Neptune::DBInstance
+    Properties:
+      DBInstanceClass: db.serverless
+      DBClusterIdentifier: !Ref NeptuneCluster
+      DBInstanceIdentifier: tiktok-daniella-instance-1
+      AvailabilityZone: !Select [0, !GetAZs ]
+      DBSubnetGroupName: !Ref NeptuneSubnetGroup
+
 Outputs:
-  BucketName:
-    Description: Name of the S3 bucket
-    Value: !Ref S3Bucket
+BucketName:
+  Description: Name of the S3 bucket
+  Value: !Ref S3Bucket
 
-  BucketWebsiteURL:
-    Description: URL of the S3 bucket website
-    Value: !GetAtt S3Bucket.WebsiteURL
+BucketWebsiteURL:
+  Description: URL of the S3 bucket website
+  Value: !GetAtt S3Bucket.WebsiteURL
 
-  UserPoolId:
-    Description: The ID of the Cognito User Pool
-    Value: !Ref CognitoUserPool
+UserPoolId:
+  Description: The ID of the Cognito User Pool
+  Value: !Ref CognitoUserPool
 
-  UserPoolClientId:
-    Description: The ID of the Cognito User Pool App Client
-    Value: !Ref CognitoUserPoolClient
+UserPoolClientId:
+  Description: The ID of the Cognito User Pool App Client
+  Value: !Ref CognitoUserPoolClient
 
-  CloudFrontDistributionId:
-    Description: ID of the CloudFront distribution
-    Value: !Ref CloudFrontDistribution
+CloudFrontDistributionId:
+  Description: ID of the CloudFront distribution
+  Value: !Ref CloudFrontDistribution
 
-  CloudFrontDistributionDomainName:
-    Description: Domain name of the CloudFront distribution
-    Value: !GetAtt CloudFrontDistribution.DomainName
+CloudFrontDistributionDomainName:
+  Description: Domain name of the CloudFront distribution
+  Value: !GetAtt CloudFrontDistribution.DomainName
+
+NeptuneClusterEndpoint:
+  Description: Neptune Cluster Endpoint
+  Value: !GetAtt NeptuneCluster.Endpoint
+
+NeptuneClusterReadEndpoint:
+  Description: Neptune Cluster Read Endpoint
+  Value: !GetAtt NeptuneCluster.ReadEndpoint

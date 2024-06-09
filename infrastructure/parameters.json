@@ -1,21 +1,7 @@
 [
-  { "ParameterKey": "BucketName", "ParameterValue": "tiktok-clone" },
-  { "ParameterKey": "UserPoolName", "ParameterValue": "tiktok-clone" },
-  {
-    "ParameterKey": "UserPoolDomain",
-    "ParameterValue": "tiktok-clone"
-  },
-  {
-    "ParameterKey": "AppClientName",
-    "ParameterValue": "tiktok-clone"
-  },
   {
     "ParameterKey": "CloudFrontCachePolicyId",
     "ParameterValue": "658327ea-f89d-4fab-a63d-7e88639e58f6"
-  },
-  {
-    "ParameterKey": "VPCName",
-    "ParameterValue": "tiktok-clone"
   },
   {
     "ParameterKey": "VPCCidrBlock",
@@ -36,5 +22,21 @@
   {
     "ParameterKey": "PrivateSubnet2CidrBlock",
     "ParameterValue": "10.0.3.0/24"
+  },
+  {
+    "ParameterKey": "NeptuneVersion",
+    "ParameterValue": "1.3.1.0"
+  },
+  {
+    "ParameterKey": "NeptuneClusterParameterGroup",
+    "ParameterValue": "default.neptune1.3"
+  },
+  {
+    "ParameterKey": "NeptuneServerlessMinCapacity",
+    "ParameterValue": "1"
+  },
+  {
+    "ParameterKey": "NeptuneServerlessMaxCapacity",
+    "ParameterValue": "10"
   }
 ]
