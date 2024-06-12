@@ -6,7 +6,7 @@ Resources:
   CognitoUserPool:
     Type: AWS::Cognito::UserPool
     Properties:
-      UserPoolName: tiktok-userpool
+      UserPoolName: userpool
       MfaConfiguration: 'OFF'
       UsernameAttributes:
         - email
@@ -22,7 +22,7 @@ Resources:
   CognitoUserPoolClient:
     Type: AWS::Cognito::UserPoolClient
     Properties:
-      ClientName: tiktok-userpool
+      ClientName: app-client
       UserPoolId: !Ref CognitoUserPool
       GenerateSecret: false
       AllowedOAuthFlows:
@@ -42,7 +42,7 @@ Resources:
         - COGNITO
 
 Outputs:
-  UserPoolId:
+  UserPoolArn:
     Description: The ARN of the Cognito User Pool
     Value: !GetAtt CognitoUserPool.Arn
     Export:

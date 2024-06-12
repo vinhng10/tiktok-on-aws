@@ -61,7 +61,7 @@ Resources:
   NeptuneCluster:
     Type: AWS::Neptune::DBCluster
     Properties:
-      DBClusterIdentifier: tiktok-neptune
+      DBClusterIdentifier: neptune
       EngineVersion: !Ref NeptuneVersion
       DBSubnetGroupName: !Ref NeptuneSubnetGroup
       VpcSecurityGroupIds:
@@ -78,7 +78,7 @@ Resources:
     Properties:
       DBInstanceClass: db.serverless
       DBClusterIdentifier: !Ref NeptuneCluster
-      DBInstanceIdentifier: tiktok-neptune-instance-1
+      DBInstanceIdentifier: neptune-instance-1
       AvailabilityZone: !Select [0, !GetAZs ]
       DBSubnetGroupName: !Ref NeptuneSubnetGroup
 

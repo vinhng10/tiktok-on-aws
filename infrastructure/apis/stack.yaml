@@ -6,58 +6,89 @@ Resources:
   ApiGatewayRestApi:
     Type: AWS::ApiGateway::RestApi
     Properties:
-      Name: MyRestApi
+      Name: apis
 
   ApiGatewayAuthorizer:
     Type: AWS::ApiGateway::Authorizer
     Properties:
-      Name: CognitoAuthorizer
+      Name: cognito
       RestApiId: !Ref ApiGatewayRestApi
       Type: COGNITO_USER_POOLS
       IdentitySource: method.request.header.Authorization
       ProviderARNs:
-        - !Ref CognitoUserPoolArn
-  Function:
-    Type: AWS::Serverless::Function
+        - !ImportValue userpool-arn
+
+  ApiGatewayMethod:
+    Type: AWS::ApiGateway::Method
     Properties:
-      Description: !Sub
-        - Stack ${AWS::StackName} Function ${ResourceName}
-        - ResourceName: Function
-      CodeUri: src/Function
-      Handler: index.handler
+      HttpMethod: POST
+      ResourceId: !GetAtt ApiGatewayRestApi.RootResourceId
+      RestApiId: !Ref ApiGatewayRestApi
+      AuthorizationType: COGNITO_USER_POOLS
+      AuthorizerId: !Ref ApiGatewayAuthorizer
+      Integration:
+        IntegrationHttpMethod: POST
+        Type: AWS_PROXY
+        Uri: !Join
+          - ''
+          - - 'arn:aws:apigateway:'
+            - !Ref AWS::Region
+            - ':lambda:path/2015-03-31/functions/'
+            - !GetAtt Function.Arn
+            - /invocations
+
+  LambdaPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt Function.Arn
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Join
+        - ''
+        - - 'arn:aws:execute-api:'
+          - !Ref AWS::Region
+          - ':'
+          - !Ref AWS::AccountId
+          - ':'
+          - !Ref ApiGatewayRestApi
+          - /*
+
+  Function:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: function
       Runtime: nodejs20.x
-      MemorySize: 3008
-      Timeout: 30
-      Tracing: Active
-      Events:
-        ApiGET:
-          Type: Api
-          Properties:
-            Path: /
-            Method: GET
-            RestApiId: !Ref Api
+      Handler: index.handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Code:
+        ZipFile: |
+          exports.handler = async (event) => {
+            console.log('Event:', JSON.stringify(event.body, null, 2));
+            return {
+              statusCode: 200,
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: event.body
+            };
+          };
+
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+
   FunctionLogGroup:
     Type: AWS::Logs::LogGroup
     DeletionPolicy: Retain
     Properties:
       LogGroupName: !Sub /aws/lambda/${Function}
-  Api:
-    Type: AWS::Serverless::Api
-    Properties:
-      Name: !Sub
-        - ${ResourceName} From Stack ${AWS::StackName}
-        - ResourceName: Api
-      StageName: Prod
-      DefinitionBody:
-        openapi: '3.0'
-        info: {}
-        paths:
-          /:
-            get:
-              x-amazon-apigateway-integration:
-                httpMethod: POST
-                type: aws_proxy
-                uri: !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${Function.Arn}/invocations
-              responses: {}
-      EndpointConfiguration: REGIONAL
-      TracingEnabled: true
