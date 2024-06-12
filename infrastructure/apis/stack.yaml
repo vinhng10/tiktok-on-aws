@@ -60,6 +60,12 @@ Resources:
       Runtime: nodejs20.x
       Handler: index.handler
       Role: !GetAtt LambdaExecutionRole.Arn
+      VpcConfig:
+        SecurityGroupIds:
+          - !ImportValue neptune-lambda-security-group
+        SubnetIds: !Split
+          - ','
+          - Fn::ImportValue private-subnet-ids
       Code:
         ZipFile: |
           exports.handler = async (event) => {
