@@ -1,7 +1,46 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Description: Sample AWS Lambda function which interact with Neptune
 Transform: AWS::Serverless-2016-10-31
+
 Resources:
+  ApiGatewayRestApi:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: MyRestApi
+
+  ApiGatewayAuthorizer:
+    Type: AWS::ApiGateway::Authorizer
+    Properties:
+      Name: CognitoAuthorizer
+      RestApiId: !Ref ApiGatewayRestApi
+      Type: COGNITO_USER_POOLS
+      IdentitySource: method.request.header.Authorization
+      ProviderARNs:
+        - !Ref CognitoUserPoolArn
+  Function:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description: !Sub
+        - Stack ${AWS::StackName} Function ${ResourceName}
+        - ResourceName: Function
+      CodeUri: src/Function
+      Handler: index.handler
+      Runtime: nodejs20.x
+      MemorySize: 3008
+      Timeout: 30
+      Tracing: Active
+      Events:
+        ApiGET:
+          Type: Api
+          Properties:
+            Path: /
+            Method: GET
+            RestApiId: !Ref Api
+  FunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Retain
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${Function}
   Api:
     Type: AWS::Serverless::Api
     Properties:
@@ -13,273 +52,12 @@ Resources:
         openapi: '3.0'
         info: {}
         paths:
-          /users:
-            post:
+          /:
+            get:
               x-amazon-apigateway-integration:
                 httpMethod: POST
                 type: aws_proxy
-                uri: !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${CreateUser.Arn}/invocations
+                uri: !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${Function.Arn}/invocations
               responses: {}
-            # get:
-            #   x-amazon-apigateway-integration:
-            #     httpMethod: POST
-            #     type: aws_proxy
-            #     uri: !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetUser.Arn}/invocations
-            #   responses: {}
-            # /content:
-            #   post:
-            #     x-amazon-apigateway-integration:
-            #       httpMethod: POST
-            #       type: aws_proxy
-            #       uri: !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${CreateContent.Arn}/invocations
-            #     responses: {}
-            #   get:
-            #     x-amazon-apigateway-integration:
-            #       httpMethod: POST
-            #       type: aws_proxy
-            #       uri: !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetContent.Arn}/invocations
-            #     responses: {}
-            # /relationship:
-            #   post:
-            #     x-amazon-apigateway-integration:
-            #       httpMethod: POST
-            #       type: aws_proxy
-            #       uri: !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${CreateRelationship.Arn}/invocations
-            #     responses: {}
-            #   get:
-            #     x-amazon-apigateway-integration:
-            #       httpMethod: POST
-            #       type: aws_proxy
-            #       uri: !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetRelationship.Arn}/invocations
-            #     responses: {}
       EndpointConfiguration: REGIONAL
       TracingEnabled: true
-      Cors:
-        MaxAge: 5
-  LambdaExecutionRole:
-    Type: AWS::IAM::Role
-    Properties:
-      AssumeRolePolicyDocument:
-        Version: 2012-10-17
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service:
-                - lambda.amazonaws.com
-            Action:
-              - sts:AssumeRole
-      ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
-  CreateContent:
-    Type: AWS::Serverless::Function
-    Properties:
-      Description: !Sub
-        - Stack ${AWS::StackName} Function ${ResourceName}
-        - ResourceName: CreateContent
-      CodeUri: src/Function2
-      Handler: handler.handler
-      Runtime: python3.11
-      MemorySize: 3008
-      Role: !GetAtt LambdaExecutionRole.Arn
-      VpcConfig:
-        SecurityGroupIds:
-          - !ImportValue neptune-lambda-security-group
-        SubnetIds: !Split
-          - ','
-          - Fn::ImportValue private-subnet-ids
-      Timeout: 30
-      Tracing: Active
-      Events:
-        ApiPOSTcontent:
-          Type: Api
-          Properties:
-            Path: /content
-            Method: POST
-            RestApiId: !Ref Api
-  CreateContentLogGroup:
-    Type: AWS::Logs::LogGroup
-    DeletionPolicy: Retain
-    Properties:
-      LogGroupName: !Sub /aws/lambda/${CreateContent}
-
-  CreateUser:
-    Type: AWS::Serverless::Function
-    Properties:
-      Description: !Sub
-        - Stack ${AWS::StackName} Function ${ResourceName}
-        - ResourceName: CreateUser
-      CodeUri: src/Function
-      Handler: handler.handler
-      Runtime: python3.11
-      MemorySize: 3008
-      Role: !GetAtt LambdaExecutionRole.Arn
-      VpcConfig:
-        SecurityGroupIds:
-          - !ImportValue neptune-lambda-security-group
-        SubnetIds: !Split
-          - ','
-          - Fn::ImportValue private-subnet-ids
-      Timeout: 30
-      Tracing: Active
-      Events:
-        ApiPOSTusers:
-          Type: Api
-          Properties:
-            Path: /users
-            Method: POST
-            RestApiId: !Ref Api
-
-  CreateUserLogGroup:
-    Type: AWS::Logs::LogGroup
-    DeletionPolicy: Retain
-    Properties:
-      LogGroupName: !Sub /aws/lambda/${CreateUser}
-
-  GetUser:
-    Type: AWS::Serverless::Function
-    Properties:
-      Description: !Sub
-        - Stack ${AWS::StackName} Function ${ResourceName}
-        - ResourceName: GetUser
-      CodeUri: src/Function2
-      Handler: handler.handler
-      Runtime: python3.11
-      MemorySize: 3008
-      Role: !GetAtt LambdaExecutionRole.Arn
-      VpcConfig:
-        SecurityGroupIds:
-          - !ImportValue neptune-lambda-security-group
-        SubnetIds: !Split
-          - ','
-          - Fn::ImportValue private-subnet-ids
-      Timeout: 30
-      Tracing: Active
-      Events:
-        ApiGETusers:
-          Type: Api
-          Properties:
-            Path: /users
-            Method: GET
-            RestApiId: !Ref Api
-
-  GetUserLogGroup:
-    Type: AWS::Logs::LogGroup
-    DeletionPolicy: Retain
-    Properties:
-      LogGroupName: !Sub /aws/lambda/${GetUser}
-
-  CreateRelationship:
-    Type: AWS::Serverless::Function
-    Properties:
-      Description: !Sub
-        - Stack ${AWS::StackName} Function ${ResourceName}
-        - ResourceName: CreateRelationship
-      CodeUri: src/Function2
-      Handler: handler.handler
-      Runtime: python3.11
-      MemorySize: 3008
-      Role: !GetAtt LambdaExecutionRole.Arn
-      VpcConfig:
-        SecurityGroupIds:
-          - !ImportValue neptune-lambda-security-group
-        SubnetIds: !Split
-          - ','
-          - Fn::ImportValue private-subnet-ids
-      Timeout: 30
-      Tracing: Active
-      Events:
-        ApiPOSTrelationship:
-          Type: Api
-          Properties:
-            Path: /relationship
-            Method: POST
-            RestApiId: !Ref Api
-
-  CreateRelationshipLogGroup:
-    Type: AWS::Logs::LogGroup
-    DeletionPolicy: Retain
-    Properties:
-      LogGroupName: !Sub /aws/lambda/${CreateRelationship}
-
-  GetContent:
-    Type: AWS::Serverless::Function
-    Properties:
-      Description: !Sub
-        - Stack ${AWS::StackName} Function ${ResourceName}
-        - ResourceName: GetContent
-      CodeUri: src/Function3
-      Handler: handler.handler
-      Runtime: python3.11
-      MemorySize: 3008
-      Role: !GetAtt LambdaExecutionRole.Arn
-      VpcConfig:
-        SecurityGroupIds:
-          - !ImportValue neptune-lambda-security-group
-        SubnetIds: !Split
-          - ','
-          - Fn::ImportValue private-subnet-ids
-      Timeout: 30
-      Tracing: Active
-      Events:
-        ApiGETcontent:
-          Type: Api
-          Properties:
-            Path: /content
-            Method: GET
-            RestApiId: !Ref Api
-
-  GetContentLogGroup:
-    Type: AWS::Logs::LogGroup
-    DeletionPolicy: Retain
-    Properties:
-      LogGroupName: !Sub /aws/lambda/${GetContent}
-
-  GetRelationship:
-    Type: AWS::Serverless::Function
-    Properties:
-      Description: !Sub
-        - Stack ${AWS::StackName} Function ${ResourceName}
-        - ResourceName: GetRelationship
-      CodeUri: src/Function4
-      Handler: handler.handler
-      Runtime: python3.11
-      MemorySize: 3008
-      Role: !GetAtt LambdaExecutionRole.Arn
-      VpcConfig:
-        SecurityGroupIds:
-          - !ImportValue neptune-lambda-security-group
-        SubnetIds: !Split
-          - ','
-          - Fn::ImportValue private-subnet-ids
-      Timeout: 30
-      Tracing: Active
-      Events:
-        ApiGETrelationship:
-          Type: Api
-          Properties:
-            Path: /relationship
-            Method: GET
-            RestApiId: !Ref Api
-
-  GetRelationshipLogGroup:
-    Type: AWS::Logs::LogGroup
-    DeletionPolicy: Retain
-    Properties:
-      LogGroupName: !Sub /aws/lambda/${GetRelationship}
-  Function2:
-    Type: AWS::Serverless::Function
-    Properties:
-      Description: !Sub
-        - Stack ${AWS::StackName} Function ${ResourceName}
-        - ResourceName: Function2
-      CodeUri: src/Function2
-      Handler: handler.handler
-      Runtime: python3.11
-      MemorySize: 3008
-      Timeout: 30
-      Tracing: Active
-  Function2LogGroup:
-    Type: AWS::Logs::LogGroup
-    DeletionPolicy: Retain
-    Properties:
-      LogGroupName: !Sub /aws/lambda/${Function2}

@@ -37,7 +37,7 @@ Resources:
       EnableDnsHostnames: true
       Tags:
         - Key: Name
-          Value: tiktok-daniella
+          Value: tiktok-vpc
 
   # Internet Gateway
   InternetGateway:

@@ -10,7 +10,7 @@ Resources:
   S3Bucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: tiktok-daniella
+      BucketName: tiktok-ui
       PublicAccessBlockConfiguration:
         BlockPublicAcls: false
         BlockPublicPolicy: false
@@ -31,7 +31,7 @@ Resources:
             Principal: "*"
             Action: s3:GetObject
             Resource:
-              - !Sub arn:aws:s3:::tiktok-daniella/*
+              - !Sub arn:aws:s3:::tiktok-ui/*
 
   CloudFrontDistribution:
     Type: AWS::CloudFront::Distribution

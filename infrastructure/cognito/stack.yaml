@@ -6,7 +6,7 @@ Resources:
   CognitoUserPool:
     Type: AWS::Cognito::UserPool
     Properties:
-      UserPoolName: tiktok-daniella
+      UserPoolName: tiktok-userpool
       MfaConfiguration: 'OFF'
       UsernameAttributes:
         - email
@@ -16,13 +16,13 @@ Resources:
   CognitoUserPoolDomain:
     Type: AWS::Cognito::UserPoolDomain
     Properties:
-      Domain: tiktok-daniella
+      Domain: tiktok-userpool
       UserPoolId: !Ref CognitoUserPool
 
   CognitoUserPoolClient:
     Type: AWS::Cognito::UserPoolClient
     Properties:
-      ClientName: tiktok-daniella
+      ClientName: tiktok-userpool
       UserPoolId: !Ref CognitoUserPool
       GenerateSecret: false
       AllowedOAuthFlows:
@@ -42,6 +42,12 @@ Resources:
         - COGNITO
 
 Outputs:
+  UserPoolId:
+    Description: The ARN of the Cognito User Pool
+    Value: !GetAtt CognitoUserPool.Arn
+    Export:
+      Name: userpool-arn
+
   UserPoolId:
     Description: The ID of the Cognito User Pool
     Value: !Ref CognitoUserPool
