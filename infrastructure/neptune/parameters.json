@@ -9,6 +9,6 @@
   },
   {
     "ParameterKey": "NeptuneServerlessMaxCapacity",
-    "ParameterValue": "10"
+    "ParameterValue": "2.5"
   }
 ]

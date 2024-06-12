@@ -65,7 +65,7 @@ Resources:
       EngineVersion: !Ref NeptuneVersion
       DBSubnetGroupName: !Ref NeptuneSubnetGroup
       VpcSecurityGroupIds:
-        - !Ref SecurityGroup
+        - !Ref NeptuneSecurityGroup
       ServerlessScalingConfiguration:
         MaxCapacity: !Ref NeptuneServerlessMaxCapacity
         MinCapacity: !Ref NeptuneServerlessMinCapacity

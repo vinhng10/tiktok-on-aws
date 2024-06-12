@@ -115,25 +115,19 @@ def reset_connection_if_connection_issue(params):
     on_backoff=reset_connection_if_connection_issue,
     interval=1,
 )
-def query(**kwargs):
-
-    id = kwargs["id"]
-
+def handler(**kwargs):
+    user_id = kwargs["user_id"]
     return (
-        g.V(id)
+        g.V(user_id)
         .fold()
-        .coalesce(__.unfold(), __.addV("User").property(T.id, id))
+        .coalesce(__.unfold(), __.addV("User").property(T.id, user_id))
         .id()
         .next()
     )
 
 
-def doQuery(event):
-    return query(id=str(randint(0, 10000)))
-
-
 def lambda_handler(event, context):
-    result = doQuery(event)
+    result = handler(event.body["user_id"])
     logger.info("result – {}".format(result))
     return result
 
@@ -159,7 +153,7 @@ def create_remote_connection():
 def connection_info():
 
     database_url = "wss://{}:{}/gremlin".format(
-        os.environ["neptuneEndpoint"], os.environ["neptunePort"]
+        os.environ["NEPTUNE_WRITE_ENDPOINT"], os.environ["NEPTUNE_PORT"]
     )
 
     if "USE_IAM" in os.environ and os.environ["USE_IAM"] == "true":

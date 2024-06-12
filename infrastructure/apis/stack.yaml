@@ -1,4 +1,4 @@
-AWSTemplateFormatVersion: '2010-09-09'
+AWSTemplateFormatVersion: "2010-09-09"
 Description: Sample AWS Lambda function which interact with Neptune
 Transform: AWS::Serverless-2016-10-31
 
@@ -30,10 +30,10 @@ Resources:
         IntegrationHttpMethod: POST
         Type: AWS_PROXY
         Uri: !Join
-          - ''
-          - - 'arn:aws:apigateway:'
+          - ""
+          - - "arn:aws:apigateway:"
             - !Ref AWS::Region
-            - ':lambda:path/2015-03-31/functions/'
+            - ":lambda:path/2015-03-31/functions/"
             - !GetAtt Function.Arn
             - /invocations
 
@@ -44,12 +44,12 @@ Resources:
       Action: lambda:InvokeFunction
       Principal: apigateway.amazonaws.com
       SourceArn: !Join
-        - ''
-        - - 'arn:aws:execute-api:'
+        - ""
+        - - "arn:aws:execute-api:"
           - !Ref AWS::Region
-          - ':'
+          - ":"
           - !Ref AWS::AccountId
-          - ':'
+          - ":"
           - !Ref ApiGatewayRestApi
           - /*
 
@@ -60,12 +60,16 @@ Resources:
       Runtime: nodejs20.x
       Handler: index.handler
       Role: !GetAtt LambdaExecutionRole.Arn
+      Environment:
+        Variables:
+          NEPTUNE_WRITE_ENDPOINT: !ImportValue neptune-write
+          NEPTUNE_PORT: 8182
       VpcConfig:
         SecurityGroupIds:
           - !ImportValue neptune-lambda-security-group
         SubnetIds: !Split
-          - ','
-          - Fn::ImportValue private-subnet-ids
+          - ","
+          - !ImportValue private-subnet-ids
       Code:
         ZipFile: |
           exports.handler = async (event) => {
@@ -92,6 +96,7 @@ Resources:
               - sts:AssumeRole
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
 
   FunctionLogGroup:
     Type: AWS::Logs::LogGroup
