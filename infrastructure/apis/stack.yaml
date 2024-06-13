@@ -56,9 +56,9 @@ Resources:
   Function:
     Type: AWS::Lambda::Function
     Properties:
-      FunctionName: function
-      Runtime: nodejs20.x
-      Handler: index.handler
+      FunctionName: create-user
+      Runtime: python3.11
+      Handler: lambda_function.lambda_handler
       Role: !GetAtt LambdaExecutionRole.Arn
       Environment:
         Variables:
@@ -70,18 +70,23 @@ Resources:
         SubnetIds: !Split
           - ","
           - !ImportValue private-subnet-ids
+      Layers:
+        - !GetAtt FunctionLayer.LayerVersionArn
       Code:
-        ZipFile: |
-          exports.handler = async (event) => {
-            console.log('Event:', JSON.stringify(event.body, null, 2));
-            return {
-              statusCode: 200,
-              headers: {
-                'Content-Type': 'application/json'
-              },
-              body: event.body
-            };
-          };
+        S3Bucket: tiktok-clone-infra
+        S3Key: apis/src/CreateUser/function.zip
+
+  FunctionLayer:
+    Type: AWS::Lambda::LayerVersion
+    Properties:
+      CompatibleArchitectures:
+        - x86_64
+      CompatibleRuntimes:
+        - python3.11
+      Content:
+        S3Bucket: tiktok-clone-infra
+        S3Key: apis/src/layer.zip
+      LayerName: neptune-dependencies
 
   LambdaExecutionRole:
     Type: AWS::IAM::Role

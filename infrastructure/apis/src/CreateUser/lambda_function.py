@@ -1,6 +1,4 @@
-import os, sys, backoff, math
-from random import randint
-from gremlin_python import statics
+import os, sys, backoff
 from gremlin_python.driver.driver_remote_connection import DriverRemoteConnection
 from gremlin_python.driver.protocol import GremlinServerError
 from gremlin_python.driver import serializer
@@ -11,7 +9,6 @@ from gremlin_python.process.traversal import T
 from aiohttp.client_exceptions import ClientConnectorError
 from botocore.auth import SigV4Auth
 from botocore.awsrequest import AWSRequest
-from botocore.credentials import ReadOnlyCredentials
 from types import SimpleNamespace
 
 import logging
@@ -127,7 +124,7 @@ def handler(**kwargs):
 
 
 def lambda_handler(event, context):
-    result = handler(event.body["user_id"])
+    result = handler(user_id=event.body["user_id"])
     logger.info("result – {}".format(result))
     return result
 
