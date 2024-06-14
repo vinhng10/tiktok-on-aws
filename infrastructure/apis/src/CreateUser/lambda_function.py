@@ -1,4 +1,4 @@
-import os, sys, backoff
+import os, sys, json, backoff
 from gremlin_python.driver.driver_remote_connection import DriverRemoteConnection
 from gremlin_python.driver.protocol import GremlinServerError
 from gremlin_python.driver import serializer
@@ -124,9 +124,14 @@ def handler(**kwargs):
 
 
 def lambda_handler(event, context):
-    result = handler(user_id=event.body["user_id"])
+    body = json.loads(event["body"])
+    result = handler(user_id=body["user_id"])
     logger.info("result – {}".format(result))
-    return result
+    return {
+        "statusCode": 200,
+        "headers": {"Content-Type": "application/json"},
+        "body": json.dumps({"result": result}),
+    }
 
 
 def create_graph_traversal_source(conn):
