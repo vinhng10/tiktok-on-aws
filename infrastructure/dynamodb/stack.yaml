@@ -1,0 +1,35 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: CloudFormation template to create DynamoDB tables.
+
+Resources:
+  VertexTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: Vertex
+      AttributeDefinitions:
+        - AttributeName: Id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: Id
+          KeyType: HASH
+      ProvisionedThroughput:
+        ReadCapacityUnits: 1
+        WriteCapacityUnits: 1
+
+  EdgeTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: Edge
+      AttributeDefinitions:
+        - AttributeName: Source
+          AttributeType: S
+        - AttributeName: Type
+          AttributeType: S
+      KeySchema:
+        - AttributeName: Source
+          KeyType: HASH
+        - AttributeName: Type
+          KeyType: RANGE
+      ProvisionedThroughput:
+        ReadCapacityUnits: 1
+        WriteCapacityUnits: 1

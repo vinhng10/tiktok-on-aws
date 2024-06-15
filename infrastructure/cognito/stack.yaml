@@ -7,11 +7,13 @@ Resources:
     Type: AWS::Cognito::UserPool
     Properties:
       UserPoolName: userpool
-      MfaConfiguration: 'OFF'
+      MfaConfiguration: "OFF"
       UsernameAttributes:
         - email
       AutoVerifiedAttributes:
         - email
+      LambdaConfig:
+        PostConfirmation: !GetAtt CreateUser.Arn
 
   CognitoUserPoolDomain:
     Type: AWS::Cognito::UserPoolDomain
@@ -40,6 +42,50 @@ Resources:
         - http://localhost:5173
       SupportedIdentityProviders:
         - COGNITO
+
+  CreateUser:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: create-user-in-dynamodb
+      Runtime: python3.11
+      Handler: lambda_function.lambda_handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Code:
+        S3Bucket: tiktok-clone-infra
+        S3Key: cognito/src/CreateUser/function.zip
+
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: CreateVertexInDynamoDB
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: "DynamoDBWriteAccessPolicy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: "Allow"
+                Action:
+                  - "dynamodb:PutItem"
+                  - "dynamodb:BatchWriteItem"
+                Resource: !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/Vertex"
+
+  LambdaInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref CreateUser
+      Action: lambda:InvokeFunction
+      Principal: cognito-idp.amazonaws.com
+      SourceArn: !GetAtt CognitoUserPool.Arn
 
 Outputs:
   UserPoolArn:
