@@ -15,16 +15,6 @@ Parameters:
     Description: Neptune max scaling capacity in serverless mode
 
 Resources:
-  VPC:
-    Type: AWS::EC2::VPC
-    Properties:
-      CidrBlock: 10.0.0.0/16
-      EnableDnsSupport: true
-      EnableDnsHostnames: true
-      Tags:
-        - Key: Name
-          Value: test
-
   LambdaSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
