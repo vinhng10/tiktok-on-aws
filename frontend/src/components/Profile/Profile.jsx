@@ -6,7 +6,7 @@ import CardCover from "@mui/joy/CardCover";
 import CardContent from "@mui/joy/CardContent";
 import Grid from "@mui/joy/Grid";
 import Typography from "@mui/joy/Typography";
-import { combine, sharedClasses } from "./styles";
+import { combine, sharedClasses } from "../styles";
 import { IconButton } from "@mui/joy";
 
 const classes = {
