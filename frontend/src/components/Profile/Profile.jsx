@@ -8,6 +8,8 @@ import Grid from "@mui/joy/Grid";
 import Typography from "@mui/joy/Typography";
 import { combine, sharedClasses } from "../styles";
 import { IconButton } from "@mui/joy";
+import { useDispatch } from "react-redux";
+import { setPage, setUser } from "../App/appSlice";
 
 const classes = {
   avatar: { width: 56, height: 56, mt: 1 },
@@ -35,7 +37,8 @@ const classes = {
   },
 };
 
-const Profile = () => {
+const Profile = (id) => {
+  const dispatch = useDispatch();
   const videos = [
     "https://videos.pexels.com/video-files/6060027/6060027-hd_1080_1920_25fps.mp4",
     "https://videos.pexels.com/video-files/15397891/15397891-hd_1080_1920_25fps.mp4",
@@ -58,7 +61,8 @@ const Profile = () => {
         color="primary"
         sx={classes.iconButton}
         onClick={() => {
-          sessionStorage.clear();
+          dispatch(setUser(null));
+          dispatch(setPage("auth"));
           window.location.href =
             `${import.meta.env.VITE_AUTH_URL}/logout?` +
             new URLSearchParams({
