@@ -69,7 +69,7 @@ Resources:
           - !ImportValue neptune-lambda-security-group
         SubnetIds: !Split
           - ","
-          - !ImportValue private-subnet-ids
+          - Fn::ImportValue private-subnet-ids
       Layers:
         - !GetAtt FunctionLayer.LayerVersionArn
       Code:
