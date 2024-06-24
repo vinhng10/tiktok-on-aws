@@ -11,6 +11,7 @@ from gremlin_python.process.traversal import T
 from aiohttp.client_exceptions import ClientConnectorError
 from botocore.auth import SigV4Auth
 from botocore.awsrequest import AWSRequest
+from botocore.exceptions import ClientError
 from types import SimpleNamespace
 
 import logging
@@ -32,7 +33,12 @@ retriable_err_msgs = ["ConcurrentModificationException"] + reconnectable_err_msg
 
 network_errors = [OSError, ClientConnectorError]
 
-retriable_errors = [GremlinServerError, RuntimeError, Exception] + network_errors
+retriable_errors = [
+    GremlinServerError,
+    RuntimeError,
+    Exception,
+    ClientError,
+] + network_errors
 
 
 def prepare_iamdb_request(database_url) -> tuple[Any, list[tuple[str, str]]]:
@@ -115,17 +121,21 @@ def reset_connection_if_connection_issue(params) -> None:
     interval=1,
 )
 def _handler(**kwargs) -> dict:
-    now = datetime.now().timestamp()
+    content_id = kwargs["content_id"]
     user_id = kwargs["user_id"]
-    result = (
-        g.V(user_id)
-        .fold()
-        .coalesce(__.unfold(), __.add_v("User").property(T.id, user_id))
+    bucket = os.environ["S3_BUCKET"]
+    key = f"{user_id}/{content_id}.mp4"
+
+    now = datetime.now().timestamp()
+    content = (
+        g.V("Content")
+        .property(T.id, content_id)
+        .property("url", f"https://{bucket}.s3.amazonaws.com/{key}")
         .property("created_at", now)
         .property("updated_at", now)
-        .element_map()
-        .next()
     )
+    g.V(user_id).add_e("Create").to(content).next()
+    result = content.element_map().next()
     result = {k.name if isinstance(k, T) else k: v for k, v in result.items()}
     return result
 
@@ -144,7 +154,7 @@ def create_graph_traversal_source(conn) -> GraphTraversalSource:
     return traversal().withRemote(conn)
 
 
-def create_remote_connection() -> DriverRemoteConnection:
+def create_remote_connection() -> DriverRemoteConnection[str]:
     logger.info("Creating remote connection")
 
     (database_url, headers) = connection_info()

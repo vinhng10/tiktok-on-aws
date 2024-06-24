@@ -1,47 +1,113 @@
-AWSTemplateFormatVersion: '2010-09-09'
+AWSTemplateFormatVersion: "2010-09-09"
 Transform: AWS::Serverless-2016-10-31
 Description: |
   local-neptune
   Sample SAM Template for local-neptune
 
-# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
 Globals:
   Function:
     Timeout: 3
     MemorySize: 128
+    Handler: handler.handler
+    Runtime: python3.11
+    Environment:
+      Variables:
+        NEPTUNE_WRITE_ENDPOINT: 172.17.0.3
+        NEPTUNE_PORT: 8182
+    Layers:
+      - arn:aws:lambda:us-east-1:751439179750:layer:neptune-dependencies:14
 
 Resources:
   CreateUser:
-    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Type: AWS::Serverless::Function
     Properties:
       CodeUri: CreateUser/
-      Handler: handler.handler
-      Runtime: python3.11
-      MemorySize: 3008
-      Timeout: 30
-      Environment:
-        Variables:
-          NEPTUNE_WRITE_ENDPOINT: 172.17.0.3
-          NEPTUNE_PORT: 8182
       Events:
-        ServerlessRestApiPOSTuser:
+        ApiPOSTuser:
           Type: Api
           Properties:
             Path: /user
             Method: POST
-      Layers:
-        - arn:aws:lambda:us-east-1:751439179750:layer:neptune-dependencies:14
+            RestApiId: !Ref Api
 
-Outputs:
-  # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
-  # Find out more about other implicit resources you can reference within SAM
-  # https://github.com/awslabs/serverless-application-model/blob/master/docs/internals/generated_resources.rst#api
-  HelloWorldApi:
-    Description: API Gateway endpoint URL for Prod stage for Hello World function
-    Value: !Sub https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/hello/
-  HelloWorldFunction:
-    Description: Hello World Lambda Function ARN
-    Value: !GetAtt HelloWorldFunction.Arn
-  HelloWorldFunctionIamRole:
-    Description: Implicit IAM Role created for Hello World function
-    Value: !GetAtt HelloWorldFunctionRole.Arn
+  CreateContent:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: CreateContent/
+      Environment:
+        Variables:
+          S3_BUCKET: tiktok-clone-storage
+      Events:
+        ApiPOSTcontent:
+          Type: Api
+          Properties:
+            Path: /content
+            Method: POST
+            RestApiId: !Ref Api
+
+  ApiGatewayRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: apigateway.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: ApiGatewayS3Policy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:PutObject
+                Resource: "*"
+
+  Api:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: apis
+      BinaryMediaTypes:
+        - video/mp4
+      StageName: Prod
+      DefinitionBody:
+        openapi: "3.0"
+        info:
+          title: Neptune
+          version: 1.0.0
+        paths:
+          /user:
+            post:
+              x-amazon-apigateway-integration:
+                httpMethod: POST
+                type: aws_proxy
+                uri: !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${CreateUser.Arn}/invocations
+              responses: {}
+          /content:
+            post:
+              x-amazon-apigateway-integration:
+                httpMethod: POST
+                type: aws_proxy
+                uri: !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${CreateContent.Arn}/invocations
+              responses: {}
+          /{bucket}/{userId}/{object}:
+            put:
+              x-amazon-apigateway-integration:
+                uri: !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}:s3:path/{bucket}/{userId}/{object}
+                credentials: !GetAtt ApiGatewayRole.Arn
+                httpMethod: PUT
+                type: AWS
+                passthroughBehavior: WHEN_NO_TEMPLATES
+                requestParameters:
+                  integration.request.path.bucket: method.request.path.bucket
+                  integration.request.path.userId: method.request.path.userId
+                  integration.request.path.object: method.request.path.object
+                responses:
+                  "200":
+                    statusCode: "200"
+              responses:
+                "200":
+                  description: Successful response
+      EndpointConfiguration: REGIONAL
