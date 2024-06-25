@@ -12,7 +12,7 @@ Globals:
     Runtime: python3.11
     Environment:
       Variables:
-        NEPTUNE_WRITE_ENDPOINT: 172.17.0.3
+        NEPTUNE_WRITE_ENDPOINT: 172.17.0.2
         NEPTUNE_PORT: 8182
     Layers:
       - arn:aws:lambda:us-east-1:751439179750:layer:neptune-dependencies:14
@@ -71,7 +71,7 @@ Resources:
       Name: apis
       BinaryMediaTypes:
         - video/mp4
-      StageName: Prod
+      StageName: prod
       DefinitionBody:
         openapi: "3.0"
         info:

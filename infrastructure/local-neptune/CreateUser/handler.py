@@ -120,9 +120,13 @@ def _handler(**kwargs) -> dict:
     result = (
         g.V(user_id)
         .fold()
-        .coalesce(__.unfold(), __.add_v("User").property(T.id, user_id))
-        .property("created_at", now)
-        .property("updated_at", now)
+        .coalesce(
+            __.unfold(),
+            __.add_v("User")
+            .property(T.id, user_id)
+            .property("created_at", now)
+            .property("updated_at", now),
+        )
         .element_map()
         .next()
     )

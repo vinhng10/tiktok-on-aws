@@ -128,14 +128,23 @@ def _handler(**kwargs) -> dict:
 
     now = datetime.now().timestamp()
     content = (
-        g.V("Content")
-        .property(T.id, content_id)
-        .property("url", f"https://{bucket}.s3.amazonaws.com/{key}")
-        .property("created_at", now)
-        .property("updated_at", now)
+        g.V(content_id)
+        .fold()
+        .coalesce(
+            __.unfold(),
+            __.add_v("Content")
+            .property(T.id, content_id)
+            .property("url", f"https://{bucket}.s3.amazonaws.com/{key}")
+            .property("created_at", now)
+            .property("updated_at", now),
+        )
+        .next()
     )
-    g.V(user_id).add_e("Create").to(content).next()
-    result = content.element_map().next()
+    g.V(user_id).coalesce(
+        __.out_e("Create").where(__.in_v().has_id(content_id)),
+        __.add_e("Create").to(content),
+    ).next()
+    result = g.V(content_id).element_map().next()
     result = {k.name if isinstance(k, T) else k: v for k, v in result.items()}
     return result
 
@@ -154,7 +163,7 @@ def create_graph_traversal_source(conn) -> GraphTraversalSource:
     return traversal().withRemote(conn)
 
 
-def create_remote_connection() -> DriverRemoteConnection[str]:
+def create_remote_connection() -> DriverRemoteConnection:
     logger.info("Creating remote connection")
 
     (database_url, headers) = connection_info()
