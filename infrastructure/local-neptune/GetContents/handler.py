@@ -140,8 +140,7 @@ def _handler(**kwargs) -> dict:
 
 
 def handler(event, context) -> dict[str, Any]:
-    body = json.loads(event["body"])
-    result = _handler(**body)
+    result = _handler(**event["queryStringParameters"])
     return {
         "statusCode": 200,
         "headers": {"Content-Type": "application/json"},
