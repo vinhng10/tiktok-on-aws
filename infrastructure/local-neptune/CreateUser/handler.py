@@ -116,14 +116,14 @@ def reset_connection_if_connection_issue(params) -> None:
 )
 def _handler(**kwargs) -> dict:
     now = datetime.now().timestamp()
-    user_id = kwargs["user_id"]
+    userId = kwargs["userId"]
     result = (
-        g.V(user_id)
+        g.V(userId)
         .fold()
         .coalesce(
             __.unfold(),
             __.add_v("User")
-            .property(T.id, user_id)
+            .property(T.id, userId)
             .property("created_at", now)
             .property("updated_at", now),
         )

@@ -113,11 +113,11 @@ def reset_connection_if_connection_issue(params):
     interval=1,
 )
 def handler(**kwargs):
-    user_id = kwargs["user_id"]
+    userId = kwargs["userId"]
     return (
-        g.V(user_id)
+        g.V(userId)
         .fold()
-        .coalesce(__.unfold(), __.addV("User").property(T.id, user_id))
+        .coalesce(__.unfold(), __.addV("User").property(T.id, userId))
         .id()
         .next()
     )
@@ -125,8 +125,7 @@ def handler(**kwargs):
 
 def lambda_handler(event, context):
     body = json.loads(event["body"])
-    result = handler(user_id=body["user_id"])
-    logger.info("result – {}".format(result))
+    result = handler(**body)
     return {
         "statusCode": 200,
         "headers": {"Content-Type": "application/json"},

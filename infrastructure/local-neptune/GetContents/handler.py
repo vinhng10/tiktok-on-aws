@@ -120,10 +120,10 @@ def reset_connection_if_connection_issue(params) -> None:
     interval=1,
 )
 def _handler(**kwargs) -> dict:
-    user_id = kwargs["user_id"]
+    userId = kwargs["userId"]
 
     contents = (
-        g.V(user_id)
+        g.V(userId)
         .out_e("Create")
         .in_v()
         .order()

@@ -121,30 +121,30 @@ def reset_connection_if_connection_issue(params) -> None:
     interval=1,
 )
 def _handler(**kwargs) -> dict:
-    content_id = kwargs["content_id"]
-    user_id = kwargs["user_id"]
+    contentId = kwargs["contentId"]
+    userId = kwargs["userId"]
     bucket = os.environ["S3_BUCKET"]
-    key = f"{user_id}/{content_id}.mp4"
+    key = f"{userId}/{contentId}.mp4"
 
     now = datetime.now().timestamp()
     content = (
-        g.V(content_id)
+        g.V(contentId)
         .fold()
         .coalesce(
             __.unfold(),
             __.add_v("Content")
-            .property(T.id, content_id)
+            .property(T.id, contentId)
             .property("url", f"https://{bucket}.s3.amazonaws.com/{key}")
             .property("created_at", now)
             .property("updated_at", now),
         )
         .next()
     )
-    g.V(user_id).coalesce(
-        __.out_e("Create").where(__.in_v().has_id(content_id)),
+    g.V(userId).coalesce(
+        __.out_e("Create").where(__.in_v().has_id(contentId)),
         __.add_e("Create").to(content),
     ).next()
-    result = g.V(content_id).element_map().next()
+    result = g.V(contentId).element_map().next()
     result = {k.name if isinstance(k, T) else k: v for k, v in result.items()}
     return result
 
