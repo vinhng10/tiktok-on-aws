@@ -22,13 +22,6 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: CreateUser/
-      Events:
-        ApiPOSTuser:
-          Type: Api
-          Properties:
-            Path: /user
-            Method: POST
-            RestApiId: !Ref Api
 
   CreateContent:
     Type: AWS::Serverless::Function
@@ -37,12 +30,17 @@ Resources:
       Environment:
         Variables:
           S3_BUCKET: tiktok-clone-storage
+
+  GetContents:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: GetContents/
       Events:
-        ApiPOSTcontent:
+        ApiGETcontent:
           Type: Api
           Properties:
             Path: /content
-            Method: POST
+            Method: GET
             RestApiId: !Ref Api
 
   ApiGatewayRole:
@@ -86,6 +84,12 @@ Resources:
                 uri: !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${CreateUser.Arn}/invocations
               responses: {}
           /content:
+            get:
+              x-amazon-apigateway-integration:
+                httpMethod: POST
+                type: aws_proxy
+                uri: !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetContents.Arn}/invocations
+              responses: {}
             post:
               x-amazon-apigateway-integration:
                 httpMethod: POST
