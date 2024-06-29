@@ -47,7 +47,7 @@ const Home = () => {
   return (
     <Card sx={sharedClasses.card}>
       <CardCover>
-        <video key={index} autoPlay loop muted>
+        <video key={index} autoPlay loop controls>
           <source src={videos[index]} type="video/mp4" />
         </video>
       </CardCover>

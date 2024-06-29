@@ -10,6 +10,7 @@ import { combine, sharedClasses } from "../styles";
 import { IconButton } from "@mui/joy";
 import { useDispatch } from "react-redux";
 import { setPage, setUser } from "../App/appSlice";
+import { useContents } from "../../hooks";
 
 const classes = {
   avatar: { width: 56, height: 56, mt: 1 },
@@ -37,7 +38,8 @@ const classes = {
   },
 };
 
-const Profile = (id) => {
+const Profile = (userId) => {
+  const { contents, loading, error } = useContents(userId);
   const dispatch = useDispatch();
   const videos = [
     "https://videos.pexels.com/video-files/6060027/6060027-hd_1080_1920_25fps.mp4",

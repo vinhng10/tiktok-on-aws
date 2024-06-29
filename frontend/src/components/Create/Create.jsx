@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { Box, Button, Card, CardContent, CardCover, Grid } from "@mui/joy";
-import { combine, sharedClasses } from "./styles";
+import { combine, sharedClasses } from "../styles";
+import { useSelector } from "react-redux";
+import { v4 as uuidv4 } from "uuid";
 
 const classes = {
   upload: { height: 80, width: 80, borderRadius: "50%", fontSize: 20 },
@@ -14,19 +16,45 @@ const classes = {
 };
 
 const Create = () => {
+  const user = useSelector((state) => state.app.user);
   const [videoSrc, setVideoSrc] = useState(null);
+  const [file, setFile] = useState(null);
 
   const handleVideoUpload = (event) => {
     const file = event.target.files[0];
     if (file) {
       const videoURL = URL.createObjectURL(file);
       setVideoSrc(videoURL);
+      setFile(file);
     }
   };
 
-  const handlePublish = () => {
-    // Implement your publish logic here
-    alert("Publish functionality is not implemented yet.");
+  const handlePublish = async () => {
+    const url = import.meta.env.VITE_CONTENT_UPLOAD_URL;
+    const bucket = import.meta.env.VITE_CONTENT_STORAGE_BUCKET;
+    const userId = user.profile.sub;
+    const contentId = uuidv4();
+
+    try {
+      const response = await fetch(
+        `${url}/prod/${bucket}/${userId}/${contentId}.mp4`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "video/mp4",
+          },
+          body: file,
+        }
+      );
+
+      if (response.ok) {
+        console.log("File uploaded successfully");
+      } else {
+        console.error("File upload failed", response.statusText);
+      }
+    } catch (error) {
+      console.error("Error uploading file", error);
+    }
   };
 
   return (
@@ -72,7 +100,7 @@ const Create = () => {
                   fullWidth
                   variant="solid"
                   color="success"
-                  onClick={(e) => console.log(e)}
+                  onClick={handlePublish}
                   sx={classes.button}
                 >
                   Publish
