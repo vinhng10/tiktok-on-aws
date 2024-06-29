@@ -87,6 +87,57 @@ Resources:
       Principal: cognito-idp.amazonaws.com
       SourceArn: !GetAtt CognitoUserPool.Arn
 
+  CognitoIdentityPool:
+    Type: AWS::Cognito::IdentityPool
+    Properties:
+      IdentityPoolName: identitypool
+      AllowUnauthenticatedIdentities: false
+      CognitoIdentityProviders:
+        - ClientId: !Ref CognitoUserPoolClient
+          ProviderName: !Sub "cognito-idp.${AWS::Region}.amazonaws.com/${CognitoUserPool}"
+
+  CognitoUserS3PersonalAccessRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: CognitoUserS3PersonalAccess
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Federated: cognito-identity.amazonaws.com
+            Action: sts:AssumeRoleWithWebIdentity
+            Condition:
+              StringEquals:
+                cognito-identity.amazonaws.com:aud: !Ref CognitoIdentityPool
+              "ForAnyValue:StringLike":
+                cognito-identity.amazonaws.com:amr: authenticated
+      Policies:
+        - PolicyName: S3AccessPolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:ListBucket
+                Resource: arn:aws:s3:::tiktok-clone-storage
+                Condition:
+                  StringLike:
+                    s3:prefix: "${cognito-identity.amazonaws.com:sub}/*"
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:PutObject
+                  - s3:DeleteObject
+                Resource: "arn:aws:s3:::tiktok-clone-storage/${cognito-identity.amazonaws.com:sub}/*"
+
+  CognitoIdentityPoolRoleAttachment:
+    Type: AWS::Cognito::IdentityPoolRoleAttachment
+    Properties:
+      IdentityPoolId: !Ref CognitoIdentityPool
+      Roles:
+        authenticated: !GetAtt CognitoUserS3PersonalAccessRole.Arn
+
 Outputs:
   UserPoolArn:
     Description: The ARN of the Cognito User Pool
@@ -113,3 +164,9 @@ Outputs:
       - Domain: !Ref CognitoUserPoolDomain
     Export:
       Name: userpool-url
+
+  IdentityPoolId:
+    Description: The ID of the Cognito Identity Pool
+    Value: !Ref CognitoIdentityPool
+    Export:
+      Name: identitypool-id
