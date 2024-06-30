@@ -3,6 +3,12 @@ import { Box, Button, Card, CardContent, CardCover, Grid } from "@mui/joy";
 import { combine, sharedClasses } from "../styles";
 import { useSelector } from "react-redux";
 import { v4 as uuidv4 } from "uuid";
+import {
+  CognitoIdentityClient,
+  GetCredentialsForIdentityCommand,
+  GetIdCommand,
+} from "@aws-sdk/client-cognito-identity";
+import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 
 const classes = {
   upload: { height: 80, width: 80, borderRadius: "50%", fontSize: 20 },
@@ -19,6 +25,69 @@ const Create = () => {
   const user = useSelector((state) => state.app.user);
   const [videoSrc, setVideoSrc] = useState(null);
   const [file, setFile] = useState(null);
+  const region = import.meta.env.VITE_REGION;
+
+  const getAWSCredentials = async (idToken, identityPoolId) => {
+    try {
+      const login = `cognito-idp.${region}.amazonaws.com/${
+        import.meta.env.VITE_USER_POOL_ID
+      }`;
+
+      const cognitoIdentityClient = new CognitoIdentityClient({
+        region: region,
+      });
+
+      const identityIdCommand = new GetIdCommand({
+        IdentityPoolId: identityPoolId,
+        Logins: { [login]: idToken },
+      });
+      const identityIdResponse = await cognitoIdentityClient.send(
+        identityIdCommand
+      );
+
+      const credentialsCommand = new GetCredentialsForIdentityCommand({
+        IdentityId: identityIdResponse.IdentityId,
+        Logins: { [login]: idToken },
+      });
+      const credentialsResponse = await cognitoIdentityClient.send(
+        credentialsCommand
+      );
+      return credentialsResponse;
+    } catch (error) {
+      console.error("Error occurred in getAWSCredentials:", error);
+      throw error;
+    }
+  };
+
+  const uploadToS3 = async (
+    awsCredentials,
+    bucketName,
+    filePath,
+    fileContent
+  ) => {
+    try {
+      const s3Client = new S3Client({
+        region: region,
+        credentials: {
+          accessKeyId: awsCredentials.AccessKeyId,
+          secretAccessKey: awsCredentials.SecretKey,
+          sessionToken: awsCredentials.SessionToken,
+        },
+      });
+
+      const putObjectCommand = new PutObjectCommand({
+        Bucket: bucketName,
+        Key: filePath,
+        Body: fileContent,
+      });
+      
+      const response = await s3Client.send(putObjectCommand);
+      console.log("File uploaded successfully:", response);
+    } catch (error) {
+      console.error("Error uploading file:", error);
+      throw error;
+    }
+  };
 
   const handleVideoUpload = (event) => {
     const file = event.target.files[0];
@@ -30,30 +99,29 @@ const Create = () => {
   };
 
   const handlePublish = async () => {
-    const url = import.meta.env.VITE_CONTENT_UPLOAD_URL;
-    const bucket = import.meta.env.VITE_CONTENT_STORAGE_BUCKET;
-    const userId = user.profile.sub;
+    // const userId = user.profile.sub;
     const contentId = uuidv4();
+    const bucket = import.meta.env.VITE_CONTENT_STORAGE_BUCKET;
+    const identityPoolId = import.meta.env.VITE_IDENTITY_POOL_ID;
 
     try {
-      const response = await fetch(
-        `${url}/prod/${bucket}/${userId}/${contentId}.mp4`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "video/mp4",
-          },
-          body: file,
-        }
-      );
+      const idToken = user.idToken;
 
-      if (response.ok) {
-        console.log("File uploaded successfully");
-      } else {
-        console.error("File upload failed", response.statusText);
-      }
+      // Replace with your actual Identity Pool ID
+      const awsCredentials = await getAWSCredentials(idToken, identityPoolId);
+
+      // Replace with your actual bucket name and file details
+      const filePath = `${awsCredentials.IdentityId}/${contentId}.mp4`;
+      const fileContent = await file.arrayBuffer();
+
+      await uploadToS3(
+        awsCredentials.Credentials,
+        bucket,
+        filePath,
+        fileContent
+      );
     } catch (error) {
-      console.error("Error uploading file", error);
+      console.error("Error:", error);
     }
   };
 

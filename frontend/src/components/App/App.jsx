@@ -32,7 +32,7 @@ const _App = () => {
           },
           body: new URLSearchParams({
             grant_type: "authorization_code",
-            client_id: import.meta.env.VITE_CLIENT_ID,
+            client_id: import.meta.env.VITE_USER_POOL_CLIENT_ID,
             code: code,
             redirect_uri: import.meta.env.VITE_REDIRECT_URI,
           }),
@@ -42,6 +42,7 @@ const _App = () => {
             if (!data.hasOwnProperty("error")) {
               const _user = {
                 profile: JSON.parse(atob(data.id_token.split(".")[1])),
+                idToken: data.id_token,
                 accessToken: data.access_token,
                 refreshToken: data.refresh_token,
               };
@@ -52,7 +53,7 @@ const _App = () => {
           .catch((error) => console.error("Error:", error));
       } else {
         const params = new URLSearchParams({
-          client_id: import.meta.env.VITE_CLIENT_ID,
+          client_id: import.meta.env.VITE_USER_POOL_CLIENT_ID,
           response_type: "code",
           scope: "email+openid+phone",
           redirect_uri: import.meta.env.VITE_REDIRECT_URI,

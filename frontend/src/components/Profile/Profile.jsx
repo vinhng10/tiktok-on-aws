@@ -68,7 +68,7 @@ const Profile = (userId) => {
           window.location.href =
             `${import.meta.env.VITE_AUTH_URL}/logout?` +
             new URLSearchParams({
-              client_id: import.meta.env.VITE_CLIENT_ID,
+              client_id: import.meta.env.VITE_USER_POOL_CLIENT_ID,
               logout_uri: import.meta.env.VITE_REDIRECT_URI,
             });
         }}
