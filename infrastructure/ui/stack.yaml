@@ -30,8 +30,7 @@ Resources:
           - Effect: Allow
             Principal: "*"
             Action: s3:GetObject
-            Resource:
-              - !Sub arn:aws:s3:::tiktok-ui/*
+            Resource: arn:aws:s3:::tiktok-ui/*
 
   CloudFrontDistribution:
     Type: AWS::CloudFront::Distribution
