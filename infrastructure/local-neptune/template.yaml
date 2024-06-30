@@ -12,7 +12,7 @@ Globals:
     Runtime: python3.11
     Environment:
       Variables:
-        NEPTUNE_WRITE_ENDPOINT: 172.17.0.2
+        NEPTUNE_WRITE_ENDPOINT: 172.17.0.3
         NEPTUNE_PORT: 8182
     Layers:
       - arn:aws:lambda:us-east-1:751439179750:layer:neptune-dependencies:14
@@ -70,6 +70,10 @@ Resources:
       BinaryMediaTypes:
         - video/mp4
       StageName: prod
+      Cors:
+        AllowMethods: "'*'"
+        AllowHeaders: "'*'"
+        AllowOrigin: "'*'"
       DefinitionBody:
         openapi: "3.0"
         info:
@@ -96,22 +100,4 @@ Resources:
                 type: aws_proxy
                 uri: !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${CreateContent.Arn}/invocations
               responses: {}
-          /{bucket}/{userId}/{object}:
-            put:
-              x-amazon-apigateway-integration:
-                uri: !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}:s3:path/{bucket}/{userId}/{object}
-                credentials: !GetAtt ApiGatewayRole.Arn
-                httpMethod: PUT
-                type: AWS
-                passthroughBehavior: WHEN_NO_TEMPLATES
-                requestParameters:
-                  integration.request.path.bucket: method.request.path.bucket
-                  integration.request.path.userId: method.request.path.userId
-                  integration.request.path.object: method.request.path.object
-                responses:
-                  "200":
-                    statusCode: "200"
-              responses:
-                "200":
-                  description: Successful response
       EndpointConfiguration: REGIONAL
