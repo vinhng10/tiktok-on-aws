@@ -153,8 +153,10 @@ const Create = () => {
       );
 
       // Create content vertex and link to user vertex to neptune graph:
-      const contentVertex = await postContent(idToken, userId, contentId);
-      return contentVertex;
+      await postContent(idToken, userId, contentId);
+
+      // Reset content creation flow:
+      setFile(null);
     } catch (error) {
       console.error("Error:", error);
     }
@@ -169,7 +171,7 @@ const Create = () => {
       </CardCover>
       <CardContent>
         <Box display="flex" alignItems="center" justifyContent="center">
-          {videoSrc == null ? (
+          {file == null ? (
             <Button
               variant="solid"
               color="neutral"
