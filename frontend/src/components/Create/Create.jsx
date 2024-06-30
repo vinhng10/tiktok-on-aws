@@ -80,11 +80,44 @@ const Create = () => {
         Key: filePath,
         Body: fileContent,
       });
-      
+
       const response = await s3Client.send(putObjectCommand);
-      console.log("File uploaded successfully:", response);
+      return response;
     } catch (error) {
       console.error("Error uploading file:", error);
+      throw error;
+    }
+  };
+
+  const postContent = async (idToken, userId, contentId) => {
+    const url = `${import.meta.env.VITE_API_URL}/content`;
+
+    const headers = new Headers({
+      "Content-Type": "application/json",
+      Authorization: idToken,
+    });
+
+    const body = JSON.stringify({
+      userId: userId,
+      contentId: contentId,
+    });
+
+    const requestOptions = {
+      method: "POST",
+      headers: headers,
+      body: body,
+    };
+
+    try {
+      const response = await fetch(url, requestOptions);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      console.log(data);
+      return data;
+    } catch (error) {
+      console.error("Error:", error);
       throw error;
     }
   };
@@ -99,27 +132,29 @@ const Create = () => {
   };
 
   const handlePublish = async () => {
-    // const userId = user.profile.sub;
+    const userId = user.profile.sub;
+    const idToken = user.idToken;
     const contentId = uuidv4();
     const bucket = import.meta.env.VITE_CONTENT_STORAGE_BUCKET;
     const identityPoolId = import.meta.env.VITE_IDENTITY_POOL_ID;
 
     try {
-      const idToken = user.idToken;
-
       // Replace with your actual Identity Pool ID
       const awsCredentials = await getAWSCredentials(idToken, identityPoolId);
 
       // Replace with your actual bucket name and file details
       const filePath = `${awsCredentials.IdentityId}/${contentId}.mp4`;
       const fileContent = await file.arrayBuffer();
-
       await uploadToS3(
         awsCredentials.Credentials,
         bucket,
         filePath,
         fileContent
       );
+
+      // Create content vertex and link to user vertex to neptune graph:
+      const contentVertex = await postContent(idToken, userId, contentId);
+      return contentVertex;
     } catch (error) {
       console.error("Error:", error);
     }
