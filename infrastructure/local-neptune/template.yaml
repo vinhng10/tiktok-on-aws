@@ -27,21 +27,11 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: CreateContent/
-      Environment:
-        Variables:
-          S3_BUCKET: tiktok-clone-storage
 
   GetContents:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: GetContents/
-      Events:
-        ApiGETcontent:
-          Type: Api
-          Properties:
-            Path: /content
-            Method: GET
-            RestApiId: !Ref Api
 
   ApiGatewayRole:
     Type: AWS::IAM::Role

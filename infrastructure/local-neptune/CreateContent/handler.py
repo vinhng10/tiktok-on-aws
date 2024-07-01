@@ -121,10 +121,9 @@ def reset_connection_if_connection_issue(params) -> None:
     interval=1,
 )
 def _handler(**kwargs) -> dict:
-    contentId = kwargs["contentId"]
     userId = kwargs["userId"]
-    bucket = os.environ["S3_BUCKET"]
-    key = f"{userId}/{contentId}.mp4"
+    contentId = kwargs["contentId"]
+    url = kwargs["url"]
 
     now = datetime.now().timestamp()
     content = (
@@ -134,7 +133,7 @@ def _handler(**kwargs) -> dict:
             __.unfold(),
             __.add_v("Content")
             .property(T.id, contentId)
-            .property("url", f"https://{bucket}.s3.amazonaws.com/{key}")
+            .property("url", url)
             .property("created_at", now)
             .property("updated_at", now),
         )
