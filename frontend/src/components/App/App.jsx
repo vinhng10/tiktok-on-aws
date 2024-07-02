@@ -83,7 +83,7 @@ const _App = () => {
         {page === "home" ? (
           <Home />
         ) : page === "profile" ? (
-          <Profile />
+          <Profile userId={user.profile.sub} />
         ) : page === "create" ? (
           <Create />
         ) : (

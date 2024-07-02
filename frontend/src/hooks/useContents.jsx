@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
+import { useSelector } from "react-redux";
 
 const useContents = (userId) => {
+  const { idToken } = useSelector((state) => state.app.user);
   const [contents, setContents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -11,9 +13,19 @@ const useContents = (userId) => {
       setError(null);
 
       try {
-        const response = await fetch(
-          `${import.meta.env.VITE_API_URL}/content?userId=${userId}`
-        );
+        const url = `${import.meta.env.VITE_API_URL}/content?userId=${userId}`;
+
+        const headers = new Headers({
+          "Content-Type": "application/json",
+          Authorization: idToken,
+        });
+
+        const requestOptions = {
+          method: "GET",
+          headers: headers,
+        };
+
+        const response = await fetch(url, requestOptions);
 
         if (!response.ok) {
           throw new Error("Network response was not ok");

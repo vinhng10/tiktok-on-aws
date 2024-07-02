@@ -38,19 +38,10 @@ const classes = {
   },
 };
 
-const Profile = (userId) => {
+const Profile = ({ userId }) => {
   const { contents, loading, error } = useContents(userId);
   const dispatch = useDispatch();
-  const videos = [
-    "https://videos.pexels.com/video-files/6060027/6060027-hd_1080_1920_25fps.mp4",
-    "https://videos.pexels.com/video-files/15397891/15397891-hd_1080_1920_25fps.mp4",
-    "https://videos.pexels.com/video-files/7244811/7244811-hd_1080_1920_25fps.mp4",
-    "https://videos.pexels.com/video-files/20496059/20496059-hd_1080_1920_30fps.mp4",
-    "https://videos.pexels.com/video-files/4053047/4053047-hd_1280_720_50fps.mp4",
-    "https://videos.pexels.com/video-files/3969453/3969453-hd_1280_720_25fps.mp4",
-    "https://videos.pexels.com/video-files/4065924/4065924-hd_1366_720_50fps.mp4",
-    "https://videos.pexels.com/video-files/3969436/3969436-hd_1280_720_25fps.mp4",
-  ];
+  console.log("===>", userId, contents);
 
   return (
     <Box
@@ -83,12 +74,12 @@ const Profile = (userId) => {
         <Typography>Likes: 789</Typography>
       </Box>
       <Grid container sx={classes.grid}>
-        {videos.map((video, index) => (
+        {contents.map((content, index) => (
           <Grid xs={4} key={index}>
             <Card sx={classes.gridItem}>
               <CardCover>
                 <video autoPlay loop muted>
-                  <source src={video} type="video/mp4" />
+                  <source src={content.url} type="video/mp4" />
                 </video>
               </CardCover>
               <CardContent></CardContent>

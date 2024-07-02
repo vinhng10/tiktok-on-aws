@@ -9,6 +9,10 @@ import {
   GetIdCommand,
 } from "@aws-sdk/client-cognito-identity";
 import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import {
+  CognitoIdentityProviderClient,
+  InitiateAuthCommand,
+} from "@aws-sdk/client-cognito-identity-provider";
 
 const classes = {
   upload: { height: 80, width: 80, borderRadius: "50%", fontSize: 20 },
@@ -22,13 +26,27 @@ const classes = {
 };
 
 const Create = () => {
-  const user = useSelector((state) => state.app.user);
+  const { profile, idToken, refreshToken } = useSelector(
+    (state) => state.app.user
+  );
   const [videoSrc, setVideoSrc] = useState(null);
   const [file, setFile] = useState(null);
   const region = import.meta.env.VITE_REGION;
 
-  const getAWSCredentials = async (idToken, identityPoolId) => {
+  const getAWSCredentials = async () => {
     try {
+      if (profile.exp < Date.now() / 1000) {
+        const client = new CognitoIdentityProviderClient({ region: region });
+        const command = new InitiateAuthCommand({
+          AuthFlow: "REFRESH_TOKEN_AUTH",
+          ClientId: import.meta.env.VITE_CLIENT_ID, // Your Cognito app client ID
+          AuthParameters: {
+            REFRESH_TOKEN: refreshToken,
+          },
+        });
+        const response = await client.send(command);
+      }
+
       const login = `cognito-idp.${region}.amazonaws.com/${
         import.meta.env.VITE_USER_POOL_ID
       }`;
@@ -38,7 +56,7 @@ const Create = () => {
       });
 
       const identityIdCommand = new GetIdCommand({
-        IdentityPoolId: identityPoolId,
+        IdentityPoolId: import.meta.env.VITE_IDENTITY_POOL_ID,
         Logins: { [login]: idToken },
       });
       const identityIdResponse = await cognitoIdentityClient.send(
@@ -89,7 +107,7 @@ const Create = () => {
     }
   };
 
-  const postContent = async (idToken, userId, contentId) => {
+  const graphCreateContent = async (contentId, identityId) => {
     const url = `${import.meta.env.VITE_API_URL}/content`;
 
     const headers = new Headers({
@@ -98,8 +116,11 @@ const Create = () => {
     });
 
     const body = JSON.stringify({
-      userId: userId,
+      userId: profile.sub,
       contentId: contentId,
+      url: `${import.meta.env.VITE_CLOUDFRONT_URL}/${encodeURIComponent(
+        identityId
+      )}/${contentId}.mp4`,
     });
 
     const requestOptions = {
@@ -132,15 +153,12 @@ const Create = () => {
   };
 
   const handlePublish = async () => {
-    const userId = user.profile.sub;
-    const idToken = user.idToken;
     const contentId = uuidv4();
     const bucket = import.meta.env.VITE_CONTENT_STORAGE_BUCKET;
-    const identityPoolId = import.meta.env.VITE_IDENTITY_POOL_ID;
 
     try {
       // Replace with your actual Identity Pool ID
-      const awsCredentials = await getAWSCredentials(idToken, identityPoolId);
+      const awsCredentials = await getAWSCredentials();
 
       // Replace with your actual bucket name and file details
       const filePath = `${awsCredentials.IdentityId}/${contentId}.mp4`;
@@ -153,7 +171,7 @@ const Create = () => {
       );
 
       // Create content vertex and link to user vertex to neptune graph:
-      await postContent(idToken, userId, contentId);
+      await graphCreateContent(contentId, awsCredentials.IdentityId);
 
       // Reset content creation flow:
       setFile(null);
