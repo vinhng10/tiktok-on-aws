@@ -1,0 +1,33 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: CloudFormation template to create an S3 bucket with specific CORS configuration and block all public access.
+
+Resources:
+  ContentStorageBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: tiktok-clone-storage
+      CorsConfiguration:
+        CorsRules:
+          - AllowedHeaders:
+              - "*"
+            AllowedMethods:
+              - GET
+              - PUT
+              - POST
+              - DELETE
+              - HEAD
+            AllowedOrigins:
+              - "http://localhost:5173"
+            MaxAge: 3000
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        IgnorePublicAcls: true
+        BlockPublicPolicy: true
+        RestrictPublicBuckets: true
+
+Outputs:
+  BucketName:
+    Description: The name of S3 bucket for content storage
+    Value: !Ref ContentStorageBucket
+    Export:
+      Name: content-storage-bucket

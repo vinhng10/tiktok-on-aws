@@ -1,0 +1,98 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: CloudFormation template to create an S3 bucket with public access, static web hosting, and a specific bucket policy.
+
+Parameters:
+  NeptuneVersion:
+    Type: String
+    Description: Neptune engine version
+
+  NeptuneServerlessMinCapacity:
+    Type: Number
+    Description: Neptune min scaling capacity in serverless mode
+
+  NeptuneServerlessMaxCapacity:
+    Type: Number
+    Description: Neptune max scaling capacity in serverless mode
+
+Resources:
+  LambdaSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow egress TCP port 8182
+      VpcId: !ImportValue vpc-id
+
+  LambdaSecurityGroupEgress:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      GroupId: !Ref LambdaSecurityGroup
+      IpProtocol: tcp
+      FromPort: 8182
+      ToPort: 8182
+      DestinationSecurityGroupId: !Ref NeptuneSecurityGroup
+
+  NeptuneSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow ingress TCP port 8182
+      VpcId: !ImportValue vpc-id
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 8182
+          ToPort: 8182
+          SourceSecurityGroupId: !Ref LambdaSecurityGroup
+
+  NeptuneSubnetGroup:
+    Type: AWS::Neptune::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: Subnet group for Neptune cluster
+      SubnetIds: !Split [",", !ImportValue private-subnet-ids]
+      DBSubnetGroupName: neptune-subnet-group
+
+  NeptuneCluster:
+    Type: AWS::Neptune::DBCluster
+    Properties:
+      DBClusterIdentifier: neptune
+      EngineVersion: !Ref NeptuneVersion
+      DBSubnetGroupName: !Ref NeptuneSubnetGroup
+      VpcSecurityGroupIds:
+        - !Ref NeptuneSecurityGroup
+      ServerlessScalingConfiguration:
+        MaxCapacity: !Ref NeptuneServerlessMaxCapacity
+        MinCapacity: !Ref NeptuneServerlessMinCapacity
+      DeletionProtection: false
+      IamAuthEnabled: false
+      StorageEncrypted: true
+
+  NeptuneInstance:
+    Type: AWS::Neptune::DBInstance
+    Properties:
+      DBInstanceClass: db.serverless
+      DBClusterIdentifier: !Ref NeptuneCluster
+      DBInstanceIdentifier: neptune-instance-1
+      AvailabilityZone: !Select [0, !GetAZs ]
+      DBSubnetGroupName: !Ref NeptuneSubnetGroup
+
+Outputs:
+  NeptuneWriteEndpoint:
+    Description: Neptune Cluster Endpoint
+    Value: !GetAtt NeptuneCluster.Endpoint
+    Export:
+      Name: neptune-write
+
+  NeptuneReadEndpoint:
+    Description: Neptune Cluster Read Endpoint
+    Value: !GetAtt NeptuneCluster.ReadEndpoint
+    Export:
+      Name: neptune-read
+
+  NeptuneSecurityGroup:
+    Description: Neptune Cluster Security Group
+    Value: !GetAtt NeptuneSecurityGroup.GroupId
+    Export:
+      Name: neptune-security-group
+
+  NeptuneLambdaSecurityGroup:
+    Description: Neptune Cluster Lambda Security Group
+    Value: !GetAtt LambdaSecurityGroup.GroupId
+    Export:
+      Name: neptune-lambda-security-group

@@ -1,0 +1,93 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: |
+  local-neptune
+  Sample SAM Template for local-neptune
+
+Globals:
+  Function:
+    Timeout: 3
+    MemorySize: 128
+    Handler: handler.handler
+    Runtime: python3.11
+    Environment:
+      Variables:
+        NEPTUNE_WRITE_ENDPOINT: 172.17.0.3
+        NEPTUNE_PORT: 8182
+    Layers:
+      - arn:aws:lambda:us-east-1:751439179750:layer:neptune-dependencies:14
+
+Resources:
+  CreateUser:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: CreateUser/
+
+  CreateContent:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: CreateContent/
+
+  GetContents:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: GetContents/
+
+  ApiGatewayRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: apigateway.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: ApiGatewayS3Policy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:PutObject
+                Resource: "*"
+
+  Api:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: apis
+      BinaryMediaTypes:
+        - video/mp4
+      StageName: prod
+      Cors:
+        AllowMethods: "'*'"
+        AllowHeaders: "'*'"
+        AllowOrigin: "'*'"
+      DefinitionBody:
+        openapi: "3.0"
+        info:
+          title: Neptune
+          version: 1.0.0
+        paths:
+          /user:
+            post:
+              x-amazon-apigateway-integration:
+                httpMethod: POST
+                type: aws_proxy
+                uri: !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${CreateUser.Arn}/invocations
+              responses: {}
+          /content:
+            get:
+              x-amazon-apigateway-integration:
+                httpMethod: POST
+                type: aws_proxy
+                uri: !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetContents.Arn}/invocations
+              responses: {}
+            post:
+              x-amazon-apigateway-integration:
+                httpMethod: POST
+                type: aws_proxy
+                uri: !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${CreateContent.Arn}/invocations
+              responses: {}
+      EndpointConfiguration: REGIONAL
