@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Box, Button, Card, CardContent, CardCover, Grid } from "@mui/joy";
 import { combine, sharedClasses } from "../styles";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { v4 as uuidv4 } from "uuid";
 import {
   CognitoIdentityClient,
@@ -13,6 +13,7 @@ import {
   CognitoIdentityProviderClient,
   InitiateAuthCommand,
 } from "@aws-sdk/client-cognito-identity-provider";
+import { setUser } from "../App/appSlice";
 
 const classes = {
   upload: { height: 80, width: 80, borderRadius: "50%", fontSize: 20 },
@@ -26,9 +27,10 @@ const classes = {
 };
 
 const Create = () => {
-  const { profile, idToken, refreshToken } = useSelector(
+  var { profile, idToken, refreshToken } = useSelector(
     (state) => state.app.user
   );
+  const dispatch = useDispatch();
   const [videoSrc, setVideoSrc] = useState(null);
   const [file, setFile] = useState(null);
   const region = import.meta.env.VITE_REGION;
@@ -36,15 +38,26 @@ const Create = () => {
   const getAWSCredentials = async () => {
     try {
       if (profile.exp < Date.now() / 1000) {
+        console.log("Hello");
         const client = new CognitoIdentityProviderClient({ region: region });
         const command = new InitiateAuthCommand({
           AuthFlow: "REFRESH_TOKEN_AUTH",
-          ClientId: import.meta.env.VITE_CLIENT_ID, // Your Cognito app client ID
+          ClientId: import.meta.env.VITE_USER_POOL_CLIENT_ID,
           AuthParameters: {
             REFRESH_TOKEN: refreshToken,
           },
         });
         const response = await client.send(command);
+        const data = response.AuthenticationResult;
+        idToken = data.IdToken;
+        profile = JSON.parse(atob(data.IdToken.split(".")[1]));
+        const _user = {
+          profile: profile,
+          idToken: idToken,
+          accessToken: data.AccessToken,
+          refreshToken: refreshToken,
+        };
+        dispatch(setUser(_user));
       }
 
       const login = `cognito-idp.${region}.amazonaws.com/${
@@ -135,7 +148,6 @@ const Create = () => {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       const data = await response.json();
-      console.log(data);
       return data;
     } catch (error) {
       console.error("Error:", error);
