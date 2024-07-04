@@ -31,7 +31,7 @@ const classes = {
   },
 };
 
-const Home = () => {
+const Feed = () => {
   const videos = [
     "https://videos.pexels.com/video-files/6060027/6060027-hd_1080_1920_25fps.mp4",
     "https://videos.pexels.com/video-files/15397891/15397891-hd_1080_1920_25fps.mp4",
@@ -88,4 +88,4 @@ const Home = () => {
   );
 };
 
-export default Home;
+export default Feed;

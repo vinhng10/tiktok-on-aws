@@ -1,8 +1,8 @@
 import { useEffect } from "react";
-import { Create, Home, Profile, styles } from "../../components";
+import { Create, Feed, Profile, styles } from "../../components";
 import { Box } from "@mui/joy";
 import { BottomNavigation, BottomNavigationAction } from "@mui/material";
-import HomeIcon from "@mui/icons-material/Home";
+import HomeIcon from "@mui/icons-material/Feed";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
 import PersonIcon from "@mui/icons-material/Person";
 import { useDispatch, useSelector } from "react-redux";
@@ -86,7 +86,7 @@ const _App = () => {
     >
       <Box sx={combine({ flexGrow: 1 }, sharedClasses.fitParent)}>
         {page === "home" ? (
-          <Home />
+          <Feed />
         ) : page === "profile" ? (
           <Profile userId={getProperty(user.idToken, "sub")} />
         ) : page === "create" ? (
