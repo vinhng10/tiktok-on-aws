@@ -7,6 +7,8 @@ import AddCircleIcon from "@mui/icons-material/AddCircle";
 import PersonIcon from "@mui/icons-material/Person";
 import { useDispatch, useSelector } from "react-redux";
 import { setPage, setUser } from "./appSlice";
+import { useManageTokens } from "../../hooks";
+import { getProperty } from "../utils";
 const { combine, sharedClasses } = styles;
 
 const classes = {
@@ -18,11 +20,15 @@ const _App = () => {
   const user = useSelector((state) => state.app.user);
   const page = useSelector((state) => state.app.page);
   const dispatch = useDispatch();
+  useManageTokens();
 
   useEffect(() => {
     if (!user) {
       const urlParams = new URLSearchParams(location.search);
       const code = urlParams.get("code");
+      const url = new URL(window.location.href);
+      url.searchParams.delete("code");
+      window.history.replaceState({}, document.title, url.toString());
 
       if (code) {
         fetch(`${import.meta.env.VITE_AUTH_URL}/oauth2/token`, {
@@ -41,7 +47,6 @@ const _App = () => {
           .then((data) => {
             if (!data.hasOwnProperty("error")) {
               const _user = {
-                profile: JSON.parse(atob(data.id_token.split(".")[1])),
                 idToken: data.id_token,
                 accessToken: data.access_token,
                 refreshToken: data.refresh_token,
@@ -63,7 +68,7 @@ const _App = () => {
           params.toString().replace(/%2B/g, "+");
       }
     } else {
-      dispatch(setPage("home"));
+      dispatch(setPage(page));
     }
   }, [user]);
 
@@ -83,7 +88,7 @@ const _App = () => {
         {page === "home" ? (
           <Home />
         ) : page === "profile" ? (
-          <Profile userId={user.profile.sub} />
+          <Profile userId={getProperty(user.idToken, "sub")} />
         ) : page === "create" ? (
           <Create />
         ) : (

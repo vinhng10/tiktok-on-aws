@@ -9,10 +9,7 @@ import {
   GetIdCommand,
 } from "@aws-sdk/client-cognito-identity";
 import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
-import {
-  CognitoIdentityProviderClient,
-  InitiateAuthCommand,
-} from "@aws-sdk/client-cognito-identity-provider";
+import { getProperty } from "../utils";
 
 const classes = {
   upload: { height: 80, width: 80, borderRadius: "50%", fontSize: 20 },
@@ -26,27 +23,13 @@ const classes = {
 };
 
 const Create = () => {
-  const { profile, idToken, refreshToken } = useSelector(
-    (state) => state.app.user
-  );
+  const user = useSelector((state) => state.app.user);
   const [videoSrc, setVideoSrc] = useState(null);
   const [file, setFile] = useState(null);
   const region = import.meta.env.VITE_REGION;
 
   const getAWSCredentials = async () => {
     try {
-      if (profile.exp < Date.now() / 1000) {
-        const client = new CognitoIdentityProviderClient({ region: region });
-        const command = new InitiateAuthCommand({
-          AuthFlow: "REFRESH_TOKEN_AUTH",
-          ClientId: import.meta.env.VITE_CLIENT_ID, // Your Cognito app client ID
-          AuthParameters: {
-            REFRESH_TOKEN: refreshToken,
-          },
-        });
-        const response = await client.send(command);
-      }
-
       const login = `cognito-idp.${region}.amazonaws.com/${
         import.meta.env.VITE_USER_POOL_ID
       }`;
@@ -57,7 +40,7 @@ const Create = () => {
 
       const identityIdCommand = new GetIdCommand({
         IdentityPoolId: import.meta.env.VITE_IDENTITY_POOL_ID,
-        Logins: { [login]: idToken },
+        Logins: { [login]: user.idToken },
       });
       const identityIdResponse = await cognitoIdentityClient.send(
         identityIdCommand
@@ -65,7 +48,7 @@ const Create = () => {
 
       const credentialsCommand = new GetCredentialsForIdentityCommand({
         IdentityId: identityIdResponse.IdentityId,
-        Logins: { [login]: idToken },
+        Logins: { [login]: user.idToken },
       });
       const credentialsResponse = await cognitoIdentityClient.send(
         credentialsCommand
@@ -112,11 +95,11 @@ const Create = () => {
 
     const headers = new Headers({
       "Content-Type": "application/json",
-      Authorization: idToken,
+      Authorization: user.idToken,
     });
 
     const body = JSON.stringify({
-      userId: profile.sub,
+      userId: getProperty(user.idToken, "sub"),
       contentId: contentId,
       url: `${import.meta.env.VITE_CLOUDFRONT_URL}/${encodeURIComponent(
         identityId
@@ -135,7 +118,6 @@ const Create = () => {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       const data = await response.json();
-      console.log(data);
       return data;
     } catch (error) {
       console.error("Error:", error);
@@ -212,7 +194,10 @@ const Create = () => {
                   fullWidth
                   variant="solid"
                   color="danger"
-                  onClick={() => setVideoSrc(null)}
+                  onClick={() => {
+                    setFile(null);
+                    setVideoSrc(null);
+                  }}
                   sx={classes.button}
                 >
                   Discard

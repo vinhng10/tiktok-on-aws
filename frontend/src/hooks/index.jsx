@@ -1,3 +1,3 @@
 import useContents from "./useContents";
-
-export { useContents };
+import { useManageTokens } from "./useAuth";
+export { useContents, useManageTokens };
