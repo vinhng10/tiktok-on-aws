@@ -9,6 +9,7 @@ import {
   GetIdCommand,
 } from "@aws-sdk/client-cognito-identity";
 import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { getProperty } from "../utils";
 
 const classes = {
   upload: { height: 80, width: 80, borderRadius: "50%", fontSize: 20 },
@@ -22,7 +23,7 @@ const classes = {
 };
 
 const Create = () => {
-  const { profile, idToken } = useSelector((state) => state.app.user);
+  const user = useSelector((state) => state.app.user);
   const [videoSrc, setVideoSrc] = useState(null);
   const [file, setFile] = useState(null);
   const region = import.meta.env.VITE_REGION;
@@ -39,7 +40,7 @@ const Create = () => {
 
       const identityIdCommand = new GetIdCommand({
         IdentityPoolId: import.meta.env.VITE_IDENTITY_POOL_ID,
-        Logins: { [login]: idToken },
+        Logins: { [login]: user.idToken },
       });
       const identityIdResponse = await cognitoIdentityClient.send(
         identityIdCommand
@@ -47,7 +48,7 @@ const Create = () => {
 
       const credentialsCommand = new GetCredentialsForIdentityCommand({
         IdentityId: identityIdResponse.IdentityId,
-        Logins: { [login]: idToken },
+        Logins: { [login]: user.idToken },
       });
       const credentialsResponse = await cognitoIdentityClient.send(
         credentialsCommand
@@ -94,11 +95,11 @@ const Create = () => {
 
     const headers = new Headers({
       "Content-Type": "application/json",
-      Authorization: idToken,
+      Authorization: user.idToken,
     });
 
     const body = JSON.stringify({
-      userId: profile.sub,
+      userId: getProperty(user.idToken, "sub"),
       contentId: contentId,
       url: `${import.meta.env.VITE_CLOUDFRONT_URL}/${encodeURIComponent(
         identityId

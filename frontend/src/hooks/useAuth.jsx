@@ -3,15 +3,17 @@ import { useDispatch, useSelector } from "react-redux";
 import {
   CognitoIdentityProviderClient,
   InitiateAuthCommand,
+  NotAuthorizedException,
 } from "@aws-sdk/client-cognito-identity-provider";
 import { setUser } from "../components/App/appSlice";
+import { utils } from "../components";
 
-export const useRefreshToken = () => {
+export const useManageTokens = () => {
   const user = useSelector((state) => state.app.user);
   const dispatch = useDispatch();
 
   useEffect(() => {
-    const refreshToken = async () => {
+    const updateToken = async () => {
       const client = new CognitoIdentityProviderClient({
         region: import.meta.env.VITE_REGION,
       });
@@ -34,14 +36,23 @@ export const useRefreshToken = () => {
     };
 
     const refreshBeforeExpiry = async () => {
-      const expiresIn = user.profile.exp - Date.now() / 1000 - 60 * 2;
+      try {
+        const expiresIn =
+          utils.getProperty(user.idToken, "exp") * 1000 -
+          Date.now() -
+          60000 * 2;
 
-      if (expiresIn > 0) {
-        setTimeout(async () => {
-          await refreshToken();
-        }, expiresIn);
-      } else {
-        await refreshToken();
+        if (expiresIn > 0) {
+          setTimeout(async () => {
+            await updateToken();
+          }, expiresIn);
+        } else {
+          await updateToken();
+        }
+      } catch (error) {
+        if (error instanceof NotAuthorizedException) {
+          dispatch(setUser(null));
+        }
       }
     };
 
