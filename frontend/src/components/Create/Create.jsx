@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Box, Button, Card, CardContent, CardCover, Grid } from "@mui/joy";
 import { combine, sharedClasses } from "../styles";
-import { useDispatch, useSelector } from "react-redux";
+import { useSelector } from "react-redux";
 import { v4 as uuidv4 } from "uuid";
 import {
   CognitoIdentityClient,
@@ -9,11 +9,6 @@ import {
   GetIdCommand,
 } from "@aws-sdk/client-cognito-identity";
 import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
-import {
-  CognitoIdentityProviderClient,
-  InitiateAuthCommand,
-} from "@aws-sdk/client-cognito-identity-provider";
-import { setUser } from "../App/appSlice";
 
 const classes = {
   upload: { height: 80, width: 80, borderRadius: "50%", fontSize: 20 },
@@ -27,39 +22,13 @@ const classes = {
 };
 
 const Create = () => {
-  var { profile, idToken, refreshToken } = useSelector(
-    (state) => state.app.user
-  );
-  const dispatch = useDispatch();
+  const { profile, idToken } = useSelector((state) => state.app.user);
   const [videoSrc, setVideoSrc] = useState(null);
   const [file, setFile] = useState(null);
   const region = import.meta.env.VITE_REGION;
 
   const getAWSCredentials = async () => {
     try {
-      if (profile.exp < Date.now() / 1000) {
-        console.log("Hello");
-        const client = new CognitoIdentityProviderClient({ region: region });
-        const command = new InitiateAuthCommand({
-          AuthFlow: "REFRESH_TOKEN_AUTH",
-          ClientId: import.meta.env.VITE_USER_POOL_CLIENT_ID,
-          AuthParameters: {
-            REFRESH_TOKEN: refreshToken,
-          },
-        });
-        const response = await client.send(command);
-        const data = response.AuthenticationResult;
-        idToken = data.IdToken;
-        profile = JSON.parse(atob(data.IdToken.split(".")[1]));
-        const _user = {
-          profile: profile,
-          idToken: idToken,
-          accessToken: data.AccessToken,
-          refreshToken: refreshToken,
-        };
-        dispatch(setUser(_user));
-      }
-
       const login = `cognito-idp.${region}.amazonaws.com/${
         import.meta.env.VITE_USER_POOL_ID
       }`;
@@ -224,7 +193,10 @@ const Create = () => {
                   fullWidth
                   variant="solid"
                   color="danger"
-                  onClick={() => setVideoSrc(null)}
+                  onClick={() => {
+                    setFile(null);
+                    setVideoSrc(null);
+                  }}
                   sx={classes.button}
                 >
                   Discard

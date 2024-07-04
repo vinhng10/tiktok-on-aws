@@ -7,6 +7,7 @@ import AddCircleIcon from "@mui/icons-material/AddCircle";
 import PersonIcon from "@mui/icons-material/Person";
 import { useDispatch, useSelector } from "react-redux";
 import { setPage, setUser } from "./appSlice";
+import { useRefreshToken } from "../../hooks";
 const { combine, sharedClasses } = styles;
 
 const classes = {
@@ -18,6 +19,7 @@ const _App = () => {
   const user = useSelector((state) => state.app.user);
   const page = useSelector((state) => state.app.page);
   const dispatch = useDispatch();
+  useRefreshToken();
 
   useEffect(() => {
     if (!user) {
@@ -63,7 +65,7 @@ const _App = () => {
           params.toString().replace(/%2B/g, "+");
       }
     } else {
-      dispatch(setPage("home"));
+      dispatch(setPage(page));
     }
   }, [user]);
 

@@ -41,7 +41,6 @@ const classes = {
 const Profile = ({ userId }) => {
   const { contents, loading, error } = useContents(userId);
   const dispatch = useDispatch();
-  console.log("===>", userId, contents);
 
   return (
     <Box
