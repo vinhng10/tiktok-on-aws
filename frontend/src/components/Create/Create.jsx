@@ -23,7 +23,7 @@ const classes = {
 };
 
 const Create = () => {
-  const user = useSelector((state) => state.app.user);
+  const { idToken } = useSelector((state) => state.app.user);
   const [videoSrc, setVideoSrc] = useState(null);
   const [file, setFile] = useState(null);
   const region = import.meta.env.VITE_REGION;
@@ -40,7 +40,7 @@ const Create = () => {
 
       const identityIdCommand = new GetIdCommand({
         IdentityPoolId: import.meta.env.VITE_IDENTITY_POOL_ID,
-        Logins: { [login]: user.idToken },
+        Logins: { [login]: idToken },
       });
       const identityIdResponse = await cognitoIdentityClient.send(
         identityIdCommand
@@ -48,7 +48,7 @@ const Create = () => {
 
       const credentialsCommand = new GetCredentialsForIdentityCommand({
         IdentityId: identityIdResponse.IdentityId,
-        Logins: { [login]: user.idToken },
+        Logins: { [login]: idToken },
       });
       const credentialsResponse = await cognitoIdentityClient.send(
         credentialsCommand
@@ -95,11 +95,11 @@ const Create = () => {
 
     const headers = new Headers({
       "Content-Type": "application/json",
-      Authorization: user.idToken,
+      Authorization: idToken,
     });
 
     const body = JSON.stringify({
-      userId: getProperty(user.idToken, "sub"),
+      userId: getProperty(idToken, "sub"),
       contentId: contentId,
       url: `${import.meta.env.VITE_CLOUDFRONT_URL}/${encodeURIComponent(
         identityId
