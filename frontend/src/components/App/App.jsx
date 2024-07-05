@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { Create, Feed, Profile, styles } from "../../components";
+import { Create, NewFeeds, Profile, styles } from "../../components";
 import { Box } from "@mui/joy";
 import { BottomNavigation, BottomNavigationAction } from "@mui/material";
 import HomeIcon from "@mui/icons-material/Feed";
@@ -86,7 +86,7 @@ const _App = () => {
     >
       <Box sx={combine({ flexGrow: 1 }, sharedClasses.fitParent)}>
         {page === "home" ? (
-          <Feed />
+          <NewFeeds />
         ) : page === "profile" ? (
           <Profile userId={getProperty(user.idToken, "sub")} />
         ) : page === "create" ? (
