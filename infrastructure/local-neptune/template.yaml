@@ -33,6 +33,11 @@ Resources:
     Properties:
       CodeUri: GetContents/
 
+  GetNewFeeds:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: GetNewFeeds/
+
   ApiGatewayRole:
     Type: AWS::IAM::Role
     Properties:
@@ -80,7 +85,7 @@ Resources:
           /content:
             get:
               x-amazon-apigateway-integration:
-                httpMethod: POST
+                httpMethod: GET
                 type: aws_proxy
                 uri: !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetContents.Arn}/invocations
               responses: {}
@@ -89,5 +94,12 @@ Resources:
                 httpMethod: POST
                 type: aws_proxy
                 uri: !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${CreateContent.Arn}/invocations
+              responses: {}
+          /newfeeds:
+            get:
+              x-amazon-apigateway-integration:
+                httpMethod: GET
+                type: aws_proxy
+                uri: !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetNewFeeds.Arn}/invocations
               responses: {}
       EndpointConfiguration: REGIONAL
