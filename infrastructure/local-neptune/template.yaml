@@ -38,6 +38,16 @@ Resources:
     Properties:
       CodeUri: GetNewFeeds/
 
+  Like:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: Like/
+
+  Follow:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: Follow/
+
   ApiGatewayRole:
     Type: AWS::IAM::Role
     Properties:
@@ -101,5 +111,19 @@ Resources:
                 httpMethod: GET
                 type: aws_proxy
                 uri: !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetNewFeeds.Arn}/invocations
+              responses: {}
+          /like:
+            post:
+              x-amazon-apigateway-integration:
+                httpMethod: POST
+                type: aws_proxy
+                uri: !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${Like.Arn}/invocations
+              responses: {}
+          /follow:
+            post:
+              x-amazon-apigateway-integration:
+                httpMethod: POST
+                type: aws_proxy
+                uri: !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${Follow.Arn}/invocations
               responses: {}
       EndpointConfiguration: REGIONAL

@@ -111,6 +111,18 @@ def reset_connection_if_connection_issue(params) -> None:
         g = create_graph_traversal_source(conn)
 
 
+def to_json(result) -> dict[str, Any]:
+    _result = {}
+    for k, v in result.items():
+        key = str(k).split(".")[-1]
+        if type(v) == dict:
+            value = to_json(v)
+        else:
+            value = v
+        _result[key] = value
+    return _result
+
+
 @backoff.on_exception(
     backoff.constant,
     tuple(retriable_errors),
@@ -139,12 +151,16 @@ def _handler(**kwargs) -> dict:
         )
         .next()
     )
-    g.V(userId).coalesce(
-        __.out_e("Create").where(__.in_v().has_id(contentId)),
-        __.add_e("Create").to(content),
-    ).next()
-    result = g.V(contentId).element_map().next()
-    result = {k.name if isinstance(k, T) else k: v for k, v in result.items()}
+    result = (
+        g.V(userId)
+        .coalesce(
+            __.out_e("Create").where(__.in_v().has_id(contentId)),
+            __.add_e("Create").to(content),
+        )
+        .element_map()
+        .next()
+    )
+    result = to_json(result)
     return result
 
 

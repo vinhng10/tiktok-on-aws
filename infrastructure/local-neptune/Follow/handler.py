@@ -1,3 +1,4 @@
+from datetime import datetime
 import os, sys, json, backoff
 from typing import Any
 from gremlin_python.driver.driver_remote_connection import DriverRemoteConnection
@@ -6,7 +7,7 @@ from gremlin_python.driver import serializer
 from gremlin_python.process.anonymous_traversal import traversal
 from gremlin_python.process.graph_traversal import GraphTraversalSource, __
 from gremlin_python.process.strategies import *
-from gremlin_python.process.traversal import T, Order
+from gremlin_python.process.traversal import T
 from aiohttp.client_exceptions import ClientConnectorError
 from botocore.auth import SigV4Auth
 from botocore.awsrequest import AWSRequest
@@ -133,34 +134,27 @@ def to_json(result) -> dict[str, Any]:
 )
 def _handler(**kwargs) -> dict:
     userId = kwargs["userId"]
-    num = int(kwargs["num"])
+    otherId = kwargs["otherId"]
 
-    contents = (
-        g.V()
-        .has_label("Content")
-        .limit(num)
-        .as_("content")
-        .inE("Create")
-        .outV()
-        .has_label("User")
-        .as_("user")
-        .select("content", "user")
-        .by(__.element_map())
-        .to_list()
+    now = datetime.now().timestamp()
+    result = (
+        g.V(userId)
+        .coalesce(
+            __.out_e("Follow").where(__.in_v().has_id(otherId)),
+            __.add_e("Follow").to(
+                __.V(otherId).property("created_at", now).property("updated_at", now),
+            ),
+        )
+        .element_map()
+        .next()
     )
-
-    result = [
-        {
-            "content": to_json(item["content"]),
-            "user": to_json(item["user"]),
-        }
-        for item in contents
-    ]
+    result = to_json(result)
     return result
 
 
 def handler(event, context) -> dict[str, Any]:
-    result = _handler(**event["queryStringParameters"])
+    body = json.loads(event["body"])
+    result = _handler(**body)
     return {
         "statusCode": 200,
         "headers": {"Content-Type": "application/json"},
