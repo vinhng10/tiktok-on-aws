@@ -49,5 +49,5 @@ export const useNewFeeds = () => {
     if (user) fetchNewFeeds();
   }, [user]);
 
-  return { newFeeds, loading, error };
+  return { newFeeds, setNewFeeds, loading, error };
 };
