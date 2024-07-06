@@ -140,12 +140,30 @@ def _handler(**kwargs) -> dict:
         .has_label("Content")
         .limit(num)
         .as_("content")
-        .inE("Create")
-        .outV()
+        .in_e("Create")
+        .out_v()
         .has_label("User")
-        .as_("user")
-        .select("content", "user")
-        .by(__.element_map())
+        .as_("creator")
+        .project("content", "user", "liked", "followed", "likeCount")
+        .by(__.select("content").element_map())
+        .by(__.select("creator").element_map())
+        .by(
+            __.select("content")
+            .in_e("Like")
+            .out_v()
+            .has_id(userId)
+            .fold()
+            .coalesce(__.unfold().constant(True), __.constant(False))
+        )
+        .by(
+            __.select("creator")
+            .in_e("Follow")
+            .out_v()
+            .has_id(userId)
+            .fold()
+            .coalesce(__.unfold().constant(True), __.constant(False))
+        )
+        .by(__.select("content").in_e("Like").count())
         .to_list()
     )
 
@@ -153,6 +171,9 @@ def _handler(**kwargs) -> dict:
         {
             "content": to_json(item["content"]),
             "user": to_json(item["user"]),
+            "liked": item["liked"],
+            "followed": item["followed"],
+            "likeCount": item["likeCount"],
         }
         for item in contents
     ]
