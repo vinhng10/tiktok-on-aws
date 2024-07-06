@@ -39,8 +39,9 @@ const classes = {
   },
 };
 
-const Profile = ({ userId }) => {
-  const { contents, loading, error } = useContents(userId);
+const Profile = () => {
+  const activeId = useSelector((state) => state.app.activeId);
+  const { contents, loading, error } = useContents(activeId);
   const { idToken } = useSelector((state) => state.app.user);
   const dispatch = useDispatch();
 

@@ -12,11 +12,12 @@ import {
   CardCover,
   IconButton,
 } from "@mui/joy";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { combine, sharedClasses } from "../styles";
 import { useNewFeeds } from "../../hooks";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { getProperty } from "../utils";
+import { setActiveId, setPage } from "../App/appSlice";
 
 const classes = {
   buttonGroup: {
@@ -37,8 +38,13 @@ const classes = {
 
 const NewFeeds = () => {
   const user = useSelector((state) => state.app.user);
+  const dispatch = useDispatch();
   const { newFeeds, setNewFeeds, loading, error } = useNewFeeds();
   const [index, setIndex] = useState(0);
+
+  useEffect(() => {
+    if (newFeeds.length) dispatch(setActiveId(newFeeds[index].user.id));
+  }, [newFeeds, index]);
 
   const handleLike = async () => {
     try {
@@ -128,7 +134,7 @@ const NewFeeds = () => {
               color="primary"
               sx={classes.iconButton}
               onClick={() => {
-                console.log("==>", newFeeds[index].user);
+                dispatch(setPage("profile"));
               }}
             >
               <Avatar />

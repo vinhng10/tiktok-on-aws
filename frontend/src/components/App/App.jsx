@@ -6,7 +6,7 @@ import HomeIcon from "@mui/icons-material/Feed";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
 import PersonIcon from "@mui/icons-material/Person";
 import { useDispatch, useSelector } from "react-redux";
-import { setPage, setUser } from "./appSlice";
+import { setActiveId, setPage, setUser } from "./appSlice";
 import { useManageTokens } from "../../hooks";
 import { getProperty } from "../utils";
 const { combine, sharedClasses } = styles;
@@ -19,6 +19,7 @@ const classes = {
 const _App = () => {
   const user = useSelector((state) => state.app.user);
   const page = useSelector((state) => state.app.page);
+  const activeId = useSelector((state) => state.app.activeId);
   const dispatch = useDispatch();
   useManageTokens();
 
@@ -52,7 +53,7 @@ const _App = () => {
                 refreshToken: data.refresh_token,
               };
               dispatch(setUser(_user));
-              dispatch(setPage("home"));
+              dispatch(setPage("newfeeds"));
             }
           })
           .catch((error) => console.error("Error:", error));
@@ -85,10 +86,10 @@ const _App = () => {
       )}
     >
       <Box sx={combine({ flexGrow: 1 }, sharedClasses.fitParent)}>
-        {page === "home" ? (
+        {page === "newfeeds" ? (
           <NewFeeds />
         ) : page === "profile" ? (
-          <Profile userId={getProperty(user.idToken, "sub")} />
+          <Profile key={activeId} />
         ) : page === "create" ? (
           <Create />
         ) : (
@@ -98,9 +99,15 @@ const _App = () => {
 
       <Box sx={classes.bottomNav}>
         <BottomNavigation value={page} onChange={handleChange}>
-          <BottomNavigationAction value="home" icon={<HomeIcon />} />
+          <BottomNavigationAction value="newfeeds" icon={<HomeIcon />} />
           <BottomNavigationAction value="create" icon={<AddCircleIcon />} />
-          <BottomNavigationAction value="profile" icon={<PersonIcon />} />
+          <BottomNavigationAction
+            value="profile"
+            icon={<PersonIcon />}
+            onClick={() => {
+              dispatch(setActiveId(getProperty(user.idToken, "sub")));
+            }}
+          />
         </BottomNavigation>
       </Box>
     </Box>

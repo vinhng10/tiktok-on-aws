@@ -5,6 +5,7 @@ export const appSlice = createSlice({
   initialState: {
     user: null,
     page: "auth",
+    activeId: null,
   },
   reducers: {
     setUser: (state, action) => {
@@ -13,8 +14,11 @@ export const appSlice = createSlice({
     setPage: (state, action) => {
       state.page = action.payload;
     },
+    setActiveId: (state, action) => {
+      state.activeId = action.payload;
+    },
   },
 });
 
-export const { setUser, setPage } = appSlice.actions;
+export const { setUser, setPage, setActiveId } = appSlice.actions;
 export default appSlice.reducer;
