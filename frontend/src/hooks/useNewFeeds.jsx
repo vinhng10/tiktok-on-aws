@@ -1,19 +1,24 @@
 import { useState, useEffect } from "react";
 import { useSelector } from "react-redux";
+import { getProperty } from "../components/utils";
 
-export const useContents = (userId) => {
+export const useNewFeeds = () => {
   const user = useSelector((state) => state.app.user);
-  const [contents, setContents] = useState([]);
+  const [newFeeds, setNewFeeds] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    const fetchContents = async () => {
+    const fetchNewFeeds = async () => {
       setLoading(true);
       setError(null);
 
       try {
-        const url = `${import.meta.env.VITE_API_URL}/content?userId=${userId}`;
+        const params = new URLSearchParams({
+          userId: getProperty(user.idToken, "sub"),
+          num: "10",
+        });
+        const url = `${import.meta.env.VITE_API_URL}/newfeeds?${params}`;
 
         const headers = new Headers({
           "Content-Type": "application/json",
@@ -32,16 +37,17 @@ export const useContents = (userId) => {
         }
 
         const data = await response.json();
-        setContents(data);
+        setNewFeeds(data);
       } catch (error) {
+        console.error(error);
         setError(error.message);
       } finally {
         setLoading(false);
       }
     };
 
-    if (user) fetchContents();
+    if (user) fetchNewFeeds();
   }, [user]);
 
-  return { contents, loading, error };
+  return { newFeeds, setNewFeeds, loading, error };
 };

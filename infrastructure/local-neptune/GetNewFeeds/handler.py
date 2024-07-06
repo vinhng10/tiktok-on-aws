@@ -1,4 +1,3 @@
-from datetime import datetime
 import os, sys, json, backoff
 from typing import Any
 from gremlin_python.driver.driver_remote_connection import DriverRemoteConnection
@@ -7,7 +6,7 @@ from gremlin_python.driver import serializer
 from gremlin_python.process.anonymous_traversal import traversal
 from gremlin_python.process.graph_traversal import GraphTraversalSource, __
 from gremlin_python.process.strategies import *
-from gremlin_python.process.traversal import T
+from gremlin_python.process.traversal import T, Order
 from aiohttp.client_exceptions import ClientConnectorError
 from botocore.auth import SigV4Auth
 from botocore.awsrequest import AWSRequest
@@ -134,39 +133,55 @@ def to_json(result) -> dict[str, Any]:
 )
 def _handler(**kwargs) -> dict:
     userId = kwargs["userId"]
-    contentId = kwargs["contentId"]
-    url = kwargs["url"]
+    num = int(kwargs["num"])
 
-    now = datetime.now().timestamp()
-    content = (
-        g.V(contentId)
-        .fold()
-        .coalesce(
-            __.unfold(),
-            __.add_v("Content")
-            .property(T.id, contentId)
-            .property("url", url)
-            .property("created_at", now)
-            .property("updated_at", now),
+    contents = (
+        g.V()
+        .has_label("Content")
+        .limit(num)
+        .as_("content")
+        .in_e("Create")
+        .out_v()
+        .has_label("User")
+        .as_("creator")
+        .project("content", "user", "liked", "followed", "likeCount")
+        .by(__.select("content").element_map())
+        .by(__.select("creator").element_map())
+        .by(
+            __.select("content")
+            .in_e("Like")
+            .out_v()
+            .has_id(userId)
+            .fold()
+            .coalesce(__.unfold().constant(True), __.constant(False))
         )
-        .next()
-    )
-    result = (
-        g.V(userId)
-        .coalesce(
-            __.out_e("Create").where(__.in_v().has_id(contentId)),
-            __.add_e("Create").to(content),
+        .by(
+            __.select("creator")
+            .in_e("Follow")
+            .out_v()
+            .has_id(userId)
+            .fold()
+            .coalesce(__.unfold().constant(True), __.constant(False))
         )
-        .element_map()
-        .next()
+        .by(__.select("content").in_e("Like").count())
+        .to_list()
     )
-    result = to_json(result)
+
+    result = [
+        {
+            "content": to_json(item["content"]),
+            "user": to_json(item["user"]),
+            "liked": item["liked"],
+            "followed": item["followed"],
+            "likeCount": item["likeCount"],
+        }
+        for item in contents
+    ]
     return result
 
 
 def handler(event, context) -> dict[str, Any]:
-    body = json.loads(event["body"])
-    result = _handler(**body)
+    result = _handler(**event["queryStringParameters"])
     return {
         "statusCode": 200,
         "headers": {"Content-Type": "application/json"},

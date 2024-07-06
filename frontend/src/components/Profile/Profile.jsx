@@ -8,9 +8,10 @@ import Grid from "@mui/joy/Grid";
 import Typography from "@mui/joy/Typography";
 import { combine, sharedClasses } from "../styles";
 import { IconButton } from "@mui/joy";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { setPage, setUser } from "../App/appSlice";
 import { useContents } from "../../hooks";
+import { getProperty } from "../utils";
 
 const classes = {
   avatar: { width: 56, height: 56, mt: 1 },
@@ -38,8 +39,10 @@ const classes = {
   },
 };
 
-const Profile = ({ userId }) => {
-  const { contents, loading, error } = useContents(userId);
+const Profile = () => {
+  const activeId = useSelector((state) => state.app.activeId);
+  const { contents, loading, error } = useContents(activeId);
+  const { idToken } = useSelector((state) => state.app.user);
   const dispatch = useDispatch();
 
   return (
@@ -66,7 +69,9 @@ const Profile = ({ userId }) => {
         <Logout sx={sharedClasses.fitParent} />
       </IconButton>
       <Avatar variant="solid" sx={classes.avatar} />
-      <Typography variant="plain">Account Name</Typography>
+      <Typography variant="plain">
+        {getProperty(idToken, "email").split("@")[0]}
+      </Typography>
       <Box gap={2} sx={classes.stats}>
         <Typography>Following: 123</Typography>
         <Typography>Followers: 456</Typography>

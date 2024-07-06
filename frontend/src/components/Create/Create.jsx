@@ -23,7 +23,7 @@ const classes = {
 };
 
 const Create = () => {
-  const user = useSelector((state) => state.app.user);
+  const { idToken } = useSelector((state) => state.app.user);
   const [videoSrc, setVideoSrc] = useState(null);
   const [file, setFile] = useState(null);
   const region = import.meta.env.VITE_REGION;
@@ -40,7 +40,7 @@ const Create = () => {
 
       const identityIdCommand = new GetIdCommand({
         IdentityPoolId: import.meta.env.VITE_IDENTITY_POOL_ID,
-        Logins: { [login]: user.idToken },
+        Logins: { [login]: idToken },
       });
       const identityIdResponse = await cognitoIdentityClient.send(
         identityIdCommand
@@ -48,7 +48,7 @@ const Create = () => {
 
       const credentialsCommand = new GetCredentialsForIdentityCommand({
         IdentityId: identityIdResponse.IdentityId,
-        Logins: { [login]: user.idToken },
+        Logins: { [login]: idToken },
       });
       const credentialsResponse = await cognitoIdentityClient.send(
         credentialsCommand
@@ -90,29 +90,29 @@ const Create = () => {
     }
   };
 
-  const graphCreateContent = async (contentId, identityId) => {
-    const url = `${import.meta.env.VITE_API_URL}/content`;
-
-    const headers = new Headers({
-      "Content-Type": "application/json",
-      Authorization: user.idToken,
-    });
-
-    const body = JSON.stringify({
-      userId: getProperty(user.idToken, "sub"),
-      contentId: contentId,
-      url: `${import.meta.env.VITE_CLOUDFRONT_URL}/${encodeURIComponent(
-        identityId
-      )}/${contentId}.mp4`,
-    });
-
-    const requestOptions = {
-      method: "POST",
-      headers: headers,
-      body: body,
-    };
-
+  const handleGraphCreateContent = async (contentId, identityId) => {
     try {
+      const url = `${import.meta.env.VITE_API_URL}/content`;
+
+      const headers = new Headers({
+        "Content-Type": "application/json",
+        Authorization: idToken,
+      });
+
+      const body = JSON.stringify({
+        userId: getProperty(idToken, "sub"),
+        contentId: contentId,
+        url: `${import.meta.env.VITE_CLOUDFRONT_URL}/${encodeURIComponent(
+          identityId
+        )}/${contentId}.mp4`,
+      });
+
+      const requestOptions = {
+        method: "POST",
+        headers: headers,
+        body: body,
+      };
+
       const response = await fetch(url, requestOptions);
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -153,7 +153,7 @@ const Create = () => {
       );
 
       // Create content vertex and link to user vertex to neptune graph:
-      await graphCreateContent(contentId, awsCredentials.IdentityId);
+      await handleGraphCreateContent(contentId, awsCredentials.IdentityId);
 
       // Reset content creation flow:
       setFile(null);

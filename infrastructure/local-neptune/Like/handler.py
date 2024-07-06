@@ -135,27 +135,15 @@ def to_json(result) -> dict[str, Any]:
 def _handler(**kwargs) -> dict:
     userId = kwargs["userId"]
     contentId = kwargs["contentId"]
-    url = kwargs["url"]
 
     now = datetime.now().timestamp()
-    content = (
-        g.V(contentId)
-        .fold()
-        .coalesce(
-            __.unfold(),
-            __.add_v("Content")
-            .property(T.id, contentId)
-            .property("url", url)
-            .property("created_at", now)
-            .property("updated_at", now),
-        )
-        .next()
-    )
     result = (
         g.V(userId)
         .coalesce(
-            __.out_e("Create").where(__.in_v().has_id(contentId)),
-            __.add_e("Create").to(content),
+            __.out_e("Like").where(__.in_v().has_id(contentId)),
+            __.add_e("Like").to(
+                __.V(contentId).property("created_at", now).property("updated_at", now),
+            ),
         )
         .element_map()
         .next()
