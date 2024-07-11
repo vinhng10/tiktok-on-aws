@@ -46,18 +46,31 @@ Resources:
   CreateUser:
     Type: AWS::Lambda::Function
     Properties:
-      FunctionName: create-user-in-dynamodb
+      FunctionName: create-user
       Runtime: python3.11
-      Handler: lambda_function.lambda_handler
+      Handler: handler.handler
+      Timeout: 30
+      Environment:
+        Variables:
+          NEPTUNE_WRITE_ENDPOINT: !ImportValue neptune-write
+          NEPTUNE_PORT: 8182
+      VpcConfig:
+        SecurityGroupIds:
+          - !ImportValue neptune-lambda-security-group
+        SubnetIds: !Split
+          - ","
+          - !ImportValue private-subnet-ids
       Role: !GetAtt LambdaExecutionRole.Arn
+      Layers:
+        - arn:aws:lambda:us-east-1:751439179750:layer:neptune-dependencies:14
       Code:
         S3Bucket: tiktok-clone-infra
-        S3Key: cognito/src/CreateUser/function.zip
+        S3Key: cognito/src/CreateUser/handler.zip
 
   LambdaExecutionRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: CreateVertexInDynamoDB
+      RoleName: RoleForLambdaVPCAccess
       AssumeRolePolicyDocument:
         Statement:
           - Effect: Allow
@@ -68,16 +81,7 @@ Resources:
               - sts:AssumeRole
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
-      Policies:
-        - PolicyName: "DynamoDBWriteAccessPolicy"
-          PolicyDocument:
-            Version: "2012-10-17"
-            Statement:
-              - Effect: "Allow"
-                Action:
-                  - "dynamodb:PutItem"
-                  - "dynamodb:BatchWriteItem"
-                Resource: !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/Vertex"
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
 
   LambdaInvokePermission:
     Type: AWS::Lambda::Permission
@@ -94,7 +98,7 @@ Resources:
       AllowUnauthenticatedIdentities: false
       CognitoIdentityProviders:
         - ClientId: !Ref CognitoUserPoolClient
-          ProviderName: !Sub "cognito-idp.${AWS::Region}.amazonaws.com/${CognitoUserPool}"
+          ProviderName: !Sub cognito-idp.${AWS::Region}.amazonaws.com/${CognitoUserPool}
 
   CognitoUserS3PersonalAccessRole:
     Type: AWS::IAM::Role
@@ -110,7 +114,7 @@ Resources:
             Condition:
               StringEquals:
                 cognito-identity.amazonaws.com:aud: !Ref CognitoIdentityPool
-              "ForAnyValue:StringLike":
+              ForAnyValue:StringLike:
                 cognito-identity.amazonaws.com:amr: authenticated
       Policies:
         - PolicyName: S3AccessPolicy
@@ -123,13 +127,13 @@ Resources:
                 Resource: arn:aws:s3:::tiktok-clone-storage
                 Condition:
                   StringLike:
-                    s3:prefix: "${cognito-identity.amazonaws.com:sub}/*"
+                    s3:prefix: ${cognito-identity.amazonaws.com:sub}/*
               - Effect: Allow
                 Action:
                   - s3:GetObject
                   - s3:PutObject
                   - s3:DeleteObject
-                Resource: "arn:aws:s3:::tiktok-clone-storage/${cognito-identity.amazonaws.com:sub}/*"
+                Resource: arn:aws:s3:::tiktok-clone-storage/${cognito-identity.amazonaws.com:sub}/*
 
   CognitoIdentityPoolRoleAttachment:
     Type: AWS::Cognito::IdentityPoolRoleAttachment

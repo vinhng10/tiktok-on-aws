@@ -160,7 +160,7 @@ Outputs:
     Export:
       Name: public-subnet-ids
 
-  PublicSubnetIds:
+  PrivateSubnetIds:
     Description: List of private subnet IDs
     Value: !Join [ ",", [ !Ref PrivateSubnet1, !Ref PrivateSubnet2 ] ]
     Export:
