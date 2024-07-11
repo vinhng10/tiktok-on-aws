@@ -148,9 +148,6 @@ def _handler(**kwargs) -> dict:
 
 def handler(event, context) -> dict[str, Any]:
     body = {"userId": event["request"]["userAttributes"]["sub"]}
-    logger.info("========================")
-    logger.info(body)
-    logger.info("========================")
     result = _handler(**body)
     return event
 
@@ -178,9 +175,6 @@ def connection_info() -> tuple[str, list[tuple[str, str]]] | tuple[str, dict]:
     database_url = "wss://{}:{}/gremlin".format(
         os.environ["NEPTUNE_WRITE_ENDPOINT"], os.environ["NEPTUNE_PORT"]
     )
-    logger.info("========================")
-    logger.info(database_url)
-    logger.info("========================")
 
     if "USE_IAM" in os.environ and os.environ["USE_IAM"] == "true":
         return prepare_iamdb_request(database_url)
