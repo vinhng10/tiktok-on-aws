@@ -43,21 +43,21 @@ Resources:
       SupportedIdentityProviders:
         - COGNITO
 
-  CreateUser:
-    Type: AWS::Lambda::Function
+  Layer:
+    Type: AWS::Lambda::LayerVersion
     Properties:
-      FunctionName: create-user-in-dynamodb
-      Runtime: python3.11
-      Handler: lambda_function.lambda_handler
-      Role: !GetAtt LambdaExecutionRole.Arn
-      Code:
+      CompatibleArchitectures:
+        - x86_64
+      CompatibleRuntimes:
+        - python3.11
+      Content:
         S3Bucket: tiktok-clone-infra
-        S3Key: cognito/src/CreateUser/function.zip
+        S3Key: cognito/src/layer.zip
+      LayerName: neptune-dependencies
 
   LambdaExecutionRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: CreateVertexInDynamoDB
       AssumeRolePolicyDocument:
         Statement:
           - Effect: Allow
@@ -68,16 +68,31 @@ Resources:
               - sts:AssumeRole
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
-      Policies:
-        - PolicyName: "DynamoDBWriteAccessPolicy"
-          PolicyDocument:
-            Version: "2012-10-17"
-            Statement:
-              - Effect: "Allow"
-                Action:
-                  - "dynamodb:PutItem"
-                  - "dynamodb:BatchWriteItem"
-                Resource: !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/Vertex"
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
+
+  CreateUser:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: neptune-create-user
+      Runtime: python3.11
+      Handler: handler.handler
+      Timeout: 30
+      Environment:
+        Variables:
+          NEPTUNE_WRITE_ENDPOINT: !ImportValue neptune-write
+          NEPTUNE_PORT: 8182
+      VpcConfig:
+        SecurityGroupIds:
+          - !ImportValue neptune-lambda-security-group
+        SubnetIds: !Split
+          - ","
+          - !ImportValue private-subnet-ids
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Layers:
+        - !Ref Layer
+      Code:
+        S3Bucket: tiktok-clone-infra
+        S3Key: cognito/src/CreateUser/handler.zip
 
   LambdaInvokePermission:
     Type: AWS::Lambda::Permission
@@ -94,7 +109,7 @@ Resources:
       AllowUnauthenticatedIdentities: false
       CognitoIdentityProviders:
         - ClientId: !Ref CognitoUserPoolClient
-          ProviderName: !Sub "cognito-idp.${AWS::Region}.amazonaws.com/${CognitoUserPool}"
+          ProviderName: !Sub cognito-idp.${AWS::Region}.amazonaws.com/${CognitoUserPool}
 
   CognitoUserS3PersonalAccessRole:
     Type: AWS::IAM::Role
@@ -110,7 +125,7 @@ Resources:
             Condition:
               StringEquals:
                 cognito-identity.amazonaws.com:aud: !Ref CognitoIdentityPool
-              "ForAnyValue:StringLike":
+              ForAnyValue:StringLike:
                 cognito-identity.amazonaws.com:amr: authenticated
       Policies:
         - PolicyName: S3AccessPolicy
@@ -123,13 +138,13 @@ Resources:
                 Resource: arn:aws:s3:::tiktok-clone-storage
                 Condition:
                   StringLike:
-                    s3:prefix: "${cognito-identity.amazonaws.com:sub}/*"
+                    s3:prefix: ${cognito-identity.amazonaws.com:sub}/*
               - Effect: Allow
                 Action:
                   - s3:GetObject
                   - s3:PutObject
                   - s3:DeleteObject
-                Resource: "arn:aws:s3:::tiktok-clone-storage/${cognito-identity.amazonaws.com:sub}/*"
+                Resource: arn:aws:s3:::tiktok-clone-storage/${cognito-identity.amazonaws.com:sub}/*
 
   CognitoIdentityPoolRoleAttachment:
     Type: AWS::Cognito::IdentityPoolRoleAttachment
@@ -170,3 +185,15 @@ Outputs:
     Value: !Ref CognitoIdentityPool
     Export:
       Name: identitypool-id
+
+  LayerArn:
+    Description: The ARN of the Neptune Lambda Layer
+    Value: !Ref Layer
+    Export:
+      Name: lambda-layer-arn
+
+  LambdaExecutionRoleArn:
+    Description: The ARN of the Neptune Lambda Execution Role
+    Value: !GetAtt LambdaExecutionRole.Arn
+    Export:
+      Name: lambda-execution-role-arn

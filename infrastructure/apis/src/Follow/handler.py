@@ -1,14 +1,17 @@
+from datetime import datetime
 import os, sys, json, backoff
+from typing import Any
 from gremlin_python.driver.driver_remote_connection import DriverRemoteConnection
 from gremlin_python.driver.protocol import GremlinServerError
 from gremlin_python.driver import serializer
 from gremlin_python.process.anonymous_traversal import traversal
-from gremlin_python.process.graph_traversal import __
+from gremlin_python.process.graph_traversal import GraphTraversalSource, __
 from gremlin_python.process.strategies import *
 from gremlin_python.process.traversal import T
 from aiohttp.client_exceptions import ClientConnectorError
 from botocore.auth import SigV4Auth
 from botocore.awsrequest import AWSRequest
+from botocore.exceptions import ClientError
 from types import SimpleNamespace
 
 import logging
@@ -30,10 +33,15 @@ retriable_err_msgs = ["ConcurrentModificationException"] + reconnectable_err_msg
 
 network_errors = [OSError, ClientConnectorError]
 
-retriable_errors = [GremlinServerError, RuntimeError, Exception] + network_errors
+retriable_errors = [
+    GremlinServerError,
+    RuntimeError,
+    Exception,
+    ClientError,
+] + network_errors
 
 
-def prepare_iamdb_request(database_url):
+def prepare_iamdb_request(database_url) -> tuple[Any, list[tuple[str, str]]]:
 
     service = "neptune-db"
     method = "GET"
@@ -56,7 +64,7 @@ def prepare_iamdb_request(database_url):
     return (database_url, request.headers.items())
 
 
-def is_retriable_error(e):
+def is_retriable_error(e) -> bool:
 
     is_retriable = False
     err_msg = str(e)
@@ -74,11 +82,11 @@ def is_retriable_error(e):
     return is_retriable
 
 
-def is_non_retriable_error(e):
+def is_non_retriable_error(e) -> bool:
     return not is_retriable_error(e)
 
 
-def reset_connection_if_connection_issue(params):
+def reset_connection_if_connection_issue(params) -> None:
 
     is_reconnectable = False
 
@@ -103,6 +111,18 @@ def reset_connection_if_connection_issue(params):
         g = create_graph_traversal_source(conn)
 
 
+def to_json(result) -> dict[str, Any]:
+    _result = {}
+    for k, v in result.items():
+        key = str(k).split(".")[-1]
+        if type(v) == dict:
+            value = to_json(v)
+        else:
+            value = v
+        _result[key] = value
+    return _result
+
+
 @backoff.on_exception(
     backoff.constant,
     tuple(retriable_errors),
@@ -112,32 +132,46 @@ def reset_connection_if_connection_issue(params):
     on_backoff=reset_connection_if_connection_issue,
     interval=1,
 )
-def handler(**kwargs):
+def _handler(**kwargs) -> dict:
     userId = kwargs["userId"]
-    return (
+    otherId = kwargs["otherId"]
+
+    now = datetime.now().timestamp()
+    result = (
         g.V(userId)
-        .fold()
-        .coalesce(__.unfold(), __.addV("User").property(T.id, userId))
-        .id()
+        .coalesce(
+            __.out_e("Follow").where(__.in_v().has_id(otherId)),
+            __.add_e("Follow").to(
+                __.V(otherId).property("created_at", now).property("updated_at", now),
+            ),
+        )
+        .element_map()
         .next()
     )
+    result = to_json(result)
+    return result
 
 
-def lambda_handler(event, context):
+def handler(event, context) -> dict[str, Any]:
     body = json.loads(event["body"])
-    result = handler(**body)
+    result = _handler(**body)
     return {
         "statusCode": 200,
-        "headers": {"Content-Type": "application/json"},
-        "body": json.dumps({"result": result}),
+        "headers": {
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Headers": "Content-Type",
+            "Access-Control-Allow-Origin": "http://localhost:5173",
+            "Access-Control-Allow-Methods": "OPTIONS,POST",
+        },
+        "body": json.dumps(result),
     }
 
 
-def create_graph_traversal_source(conn):
+def create_graph_traversal_source(conn) -> GraphTraversalSource:
     return traversal().withRemote(conn)
 
 
-def create_remote_connection():
+def create_remote_connection() -> DriverRemoteConnection:
     logger.info("Creating remote connection")
 
     (database_url, headers) = connection_info()
@@ -146,12 +180,12 @@ def create_remote_connection():
         database_url,
         "g",
         pool_size=1,
-        message_serializer=serializer.GraphSONSerializersV2d0(),
+        # message_serializer=serializer.GraphSONSerializersV2d0(),
         headers=headers,
     )
 
 
-def connection_info():
+def connection_info() -> tuple[str, list[tuple[str, str]]] | tuple[str, dict]:
 
     database_url = "wss://{}:{}/gremlin".format(
         os.environ["NEPTUNE_WRITE_ENDPOINT"], os.environ["NEPTUNE_PORT"]
