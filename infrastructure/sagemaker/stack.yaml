@@ -1,0 +1,112 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Resources:
+  # SNS Topic
+  SNSTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: content-analysis-sagemaker
+      DisplayName: Content Analysis Endpoint Topic
+
+  # SageMaker Endpoint Configuration
+  AsyncEndpointConfig:
+    Type: AWS::SageMaker::EndpointConfig
+    Properties:
+      EndpointConfigName: async-endpoint
+      AsyncInferenceConfig:
+        OutputConfig:
+          S3OutputPath: s3://tiktok-clone-sagemaker/content-analysis/outputs
+          S3FailurePath: s3://tiktok-clone-sagemaker/content-analysis/failures
+          NotificationConfig:
+            SuccessTopic: !Ref SNSTopic
+            ErrorTopic: !Ref SNSTopic
+      ProductionVariants:
+        - VariantName: AllTraffic
+          ModelName: content-analysis # Replace with actual model name
+          InitialInstanceCount: 0
+          InstanceType: ml.m5.xlarge
+          InitialVariantWeight: 1
+
+  # SageMaker Endpoint
+  Endpoint:
+    Type: AWS::SageMaker::Endpoint
+    Properties:
+      EndpointName: content-analysis
+      EndpointConfigName: !Ref AsyncEndpointConfig
+  StateMachine:
+    Type: AWS::Serverless::StateMachine
+    Properties:
+      Definition:
+        StartAt: LambdaTask
+        States:
+          LambdaTask:
+            Type: Task
+            Resource: arn:aws:states:::lambda:invoke
+            Parameters:
+              Payload.$: $
+              FunctionName: ${LambdaFunction1}
+            End: true
+      Logging:
+        Level: ALL
+        IncludeExecutionData: true
+        Destinations:
+          - CloudWatchLogsLogGroup:
+              LogGroupArn: !GetAtt StateMachineLogGroup.Arn
+      Policies:
+        - AWSXrayWriteOnlyAccess
+        - Statement:
+            - Effect: Allow
+              Action:
+                - logs:CreateLogDelivery
+                - logs:GetLogDelivery
+                - logs:UpdateLogDelivery
+                - logs:DeleteLogDelivery
+                - logs:ListLogDeliveries
+                - logs:PutResourcePolicy
+                - logs:DescribeResourcePolicies
+                - logs:DescribeLogGroups
+              Resource: '*'
+        - LambdaInvokePolicy:
+            FunctionName: !Ref Function
+      Tracing:
+        Enabled: true
+      Type: STANDARD
+      DefinitionSubstitutions:
+        LambdaFunction1: !GetAtt Function.Arn
+  StateMachineLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub
+        - /aws/vendedlogs/states/${AWS::StackName}-${ResourceId}-Logs
+        - ResourceId: StateMachine
+  Function:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description: !Sub
+        - Stack ${AWS::StackName} Function ${ResourceName}
+        - ResourceName: Function
+      CodeUri: src/Function
+      Handler: index.handler
+      Runtime: nodejs20.x
+      MemorySize: 3008
+      Timeout: 30
+      Tracing: Active
+  FunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Retain
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${Function}
+
+Outputs:
+  OutputBucketName:
+    Description: Name of the output bucket
+    Value: !Ref OutputBucket
+
+  FailureBucketName:
+    Description: Name of the failure bucket
+    Value: !Ref FailureBucket
+
+  SNSTopicARN:
+    Description: ARN of the SNS Topic
+    Value: !Ref SNSTopic
+Transform: AWS::Serverless-2016-10-31
