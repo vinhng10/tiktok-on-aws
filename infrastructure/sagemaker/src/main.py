@@ -87,3 +87,15 @@ print(
         initial_args={"InvocationTimeoutSeconds": 300},
     )
 )
+
+from sagemaker import image_uris
+
+container = image_uris.retrieve(
+    region="us-east-1",
+    framework="pytorch",
+    version="2.3",
+    instance_type="ml.t2.medium",
+    py_version="py311",
+    sagemaker_session=sagemaker.Session(default_bucket="tiktok-clone-sagemaker"),
+    image_scope="inference",
+)
