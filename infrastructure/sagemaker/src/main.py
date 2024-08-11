@@ -1,14 +1,19 @@
+# https://sagemaker-examples.readthedocs.io/en/latest/frameworks/pytorch/get_started_mnist_deploy.html
+
 import json
 import tarfile
 import boto3
 import sagemaker
+import numpy as np
 from sagemaker.pytorch.model import PyTorchModel
 from sagemaker.async_inference import AsyncInferenceConfig
 from sagemaker.predictor_async import AsyncPredictor
 from sagemaker.predictor import Predictor
+from sagemaker.serializers import JSONSerializer
+from sagemaker.deserializers import JSONDeserializer
 
 
-# Create S3 SageMaker bucket:
+# # Create S3 SageMaker bucket:
 try:
     sagemaker.Session(default_bucket="tiktok-clone-sagemaker").default_bucket()
 except Exception as e:
@@ -47,15 +52,14 @@ except iam.exceptions.EntityAlreadyExistsException:
     role = iam.get_role(RoleName=role_name)["Role"]["Arn"]
 
 # Upload model to S3:
-model_dir = "export"
 with tarfile.open("model.tar.gz", "w:gz") as tar:
-    tar.add(model_dir)
+    tar.add("code")
+    tar.add("model.pth")
 model_url = sagemaker.Session(default_bucket="tiktok-clone-sagemaker").upload_data(
     path="model.tar.gz",
     bucket="tiktok-clone-sagemaker",
     key_prefix="content-analysis/models",
 )
-# model_url = "s3://tiktok-clone-sagemaker/content-analysis/models/model.tar.gz"
 
 # Create SageMaker model:
 async_config = AsyncInferenceConfig(
@@ -70,6 +74,8 @@ model = PyTorchModel(
     name="content-analysis",
     model_data=model_url,
     role=role,
+    source_dir="code",
+    entry_point="inference.py",
     framework_version="2.3",
     py_version="py311",
     sagemaker_session=sagemaker.Session(default_bucket="tiktok-clone-sagemaker"),
@@ -77,25 +83,25 @@ model = PyTorchModel(
 predictor = model.deploy(
     endpoint_name="content-analysis",
     initial_instance_count=1,
-    instance_type="ml.m5.xlarge",
-    async_inference_config=async_config,
-)
-
-print(
-    predictor.predict_async(
-        data=json.dumps({"contentUrl": "s3://tiktok-clone-storage"}),
-        initial_args={"InvocationTimeoutSeconds": 300},
-    )
-)
-
-from sagemaker import image_uris
-
-container = image_uris.retrieve(
-    region="us-east-1",
-    framework="pytorch",
-    version="2.3",
     instance_type="ml.t2.medium",
-    py_version="py311",
-    sagemaker_session=sagemaker.Session(default_bucket="tiktok-clone-sagemaker"),
-    image_scope="inference",
+    async_inference_config=async_config,
+    serializer=JSONSerializer(),
+    deserializer=JSONDeserializer(),
 )
+
+# sagemaker_runtime = boto3.client("sagemaker-runtime", region_name="us-east-1")
+# data = {"inputs": np.random.rand(2, 2).tolist()}
+# response = predictor.predict_async(data)
+
+# response = sagemaker_runtime.invoke_endpoint(
+#     EndpointName="content-analysis",
+#     ContentType="application/json",
+#     Body=bytes(json.dumps(data), encoding="utf-8"),
+# )
+# response["Body"].read().decode("utf-8")
+
+
+# response = sagemaker_runtime.invoke_endpoint_async(
+#     EndpointName="content-analysis-async",
+#     InputLocation="s3://tiktok-clone-sagemaker/input.json",
+# )
