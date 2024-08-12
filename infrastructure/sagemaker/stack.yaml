@@ -1,77 +1,49 @@
 AWSTemplateFormatVersion: 2010-09-09
 
-Globals:
-  Function:
-    MemorySize: 128
-    Handler: handler.handler
-    Runtime: python3.11
-    Timeout: 30
-
 Resources:
-  # SageMakerBucket:
-  #   Type: AWS::S3::Bucket
-  #   Properties:
-  #     BucketName: tiktok-clone-sagemaker
-
-  CallContentAnalysis:
-    Type: AWS::Serverless::Function
+  # SNS Topic
+  SNSTopic:
+    Type: AWS::SNS::Topic
     Properties:
-      CodeUri: src/CallContentAnalysis
-      Tracing: Active
-      Events:
-        ContentStorageBucket:
-          Type: S3
-          Properties:
-            Bucket: tiktok-clone-storage
-            Events:
-              - s3:ObjectCreated:*
-      Environment:
-        Variables:
-          CONTENTANALYSISQUEUE_QUEUE_NAME: !GetAtt ContentAnalysisQueue.QueueName
-          CONTENTANALYSISQUEUE_QUEUE_ARN: !GetAtt ContentAnalysisQueue.Arn
-          CONTENTANALYSISQUEUE_QUEUE_URL: !Ref ContentAnalysisQueue
-      Policies:
-        - SQSSendMessagePolicy:
-            QueueName: !GetAtt ContentAnalysisQueue.QueueName
+      TopicName: content-analysis-sagemaker
+      DisplayName: Content Analysis Endpoint Topic
 
-  CallContentAnalysisLogGroup:
-    Type: AWS::Logs::LogGroup
-    DeletionPolicy: Retain
+  # SageMaker Endpoint Configuration
+  AsyncEndpointConfig:
+    Type: AWS::SageMaker::EndpointConfig
     Properties:
-      LogGroupName: !Sub /aws/lambda/${CallContentAnalysis}
+      EndpointConfigName: async-endpoint
+      AsyncInferenceConfig:
+        OutputConfig:
+          S3OutputPath: s3://tiktok-clone-sagemaker/content-analysis/outputs
+          S3FailurePath: s3://tiktok-clone-sagemaker/content-analysis/failures
+          NotificationConfig:
+            SuccessTopic: !Ref SNSTopic
+            ErrorTopic: !Ref SNSTopic
+      ProductionVariants:
+        - VariantName: AllTraffic
+          ModelName: content-analysis # Replace with actual model name
+          InitialInstanceCount: 0
+          InstanceType: ml.m5.xlarge
+          InitialVariantWeight: 1
 
-  ContentAnalysisQueue:
-    Type: AWS::SQS::Queue
-  
-  # ContentAnalysis:
-  #   Type: AWS::Serverless::Function
-  #   Properties:
-  #     CodeUri: src/ContentAnalysis
-  #     Tracing: Active
-  #     Events:
-  #       ContentAnalysisQueue:
-  #         Type: SQS
-  #         Properties:
-  #           Queue: !GetAtt ContentAnalysisQueue.Arn
-  #           BatchSize: 1
-  #     Environment:
-  #       Variables:
-  #         SAGEMAKERBUCKET_BUCKET_NAME: !Ref SageMakerBucket
-  #         SAGEMAKERBUCKET_BUCKET_ARN: !GetAtt SageMakerBucket.Arn
-  #     Policies:
-  #       - Statement:
-  #           - Effect: Allow
-  #             Action:
-  #               - s3:GetObject
-  #               - s3:PutObject
-  #             Resource:
-  #               - !Sub arn:${AWS::Partition}:s3:::${SageMakerBucket}
-  #               - !Sub arn:${AWS::Partition}:s3:::${SageMakerBucket}/*
+  # SageMaker Endpoint
+  Endpoint:
+    Type: AWS::SageMaker::Endpoint
+    Properties:
+      EndpointName: content-analysis
+      EndpointConfigName: !Ref AsyncEndpointConfig
 
-  # ContentAnalysisLogGroup:
-  #   Type: AWS::Logs::LogGroup
-  #   DeletionPolicy: Retain
-  #   Properties:
-  #     LogGroupName: !Sub /aws/lambda/${ContentAnalysis}
+Outputs:
+  OutputBucketName:
+    Description: Name of the output bucket
+    Value: !Ref OutputBucket
 
+  FailureBucketName:
+    Description: Name of the failure bucket
+    Value: !Ref FailureBucket
+
+  SNSTopicARN:
+    Description: ARN of the SNS Topic
+    Value: !Ref SNSTopic
 Transform: AWS::Serverless-2016-10-31
