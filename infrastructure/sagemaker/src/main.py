@@ -4,22 +4,19 @@ import json
 import tarfile
 import boto3
 import sagemaker
-import numpy as np
 from sagemaker.pytorch.model import PyTorchModel
 from sagemaker.async_inference import AsyncInferenceConfig
-from sagemaker.predictor_async import AsyncPredictor
-from sagemaker.predictor import Predictor
 from sagemaker.serializers import JSONSerializer
 from sagemaker.deserializers import JSONDeserializer
 
 
-# # Create S3 SageMaker bucket:
+# Create S3 SageMaker bucket:
 try:
     sagemaker.Session(default_bucket="tiktok-clone-sagemaker").default_bucket()
 except Exception as e:
     print(f"An error occurred: {e}")
 
-# Create IAM SageMaker execution role
+
 try:
     # Create SageMaker execution role:
     iam = boto3.client("iam")
@@ -40,16 +37,69 @@ try:
         AssumeRolePolicyDocument=json.dumps(assume_role_policy_document),
     )
     role = response["Role"]["Arn"]
-    print(f"Created role: {role}")
 
-    # Attach necessary policies
+    # Attach managed policies
     iam.attach_role_policy(
         RoleName=role_name,
         PolicyArn="arn:aws:iam::aws:policy/AmazonSageMakerFullAccess",
     )
+
+    # Create inline policies:
+    sagemaker_s3_access_policy = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Effect": "Allow",
+                "Action": [
+                    "s3:PutObject",
+                    "s3:GetObject",
+                    "s3:AbortMultipartUpload",
+                    "s3:ListBucket",
+                ],
+                "Resource": "arn:aws:s3:::tiktok-clone-sagemaker/*",
+            }
+        ],
+    }
+    sagemaker_sns_access_policy = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Effect": "Allow",
+                "Action": "sns:Publish",
+                "Resource": "arn:aws:sns:us-east-1:751439179750:content-analysis",
+            }
+        ],
+    }
+    s3_content_storage_get_objects_policy = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Effect": "Allow",
+                "Action": "s3:GetObject",
+                "Resource": "arn:aws:s3:::tiktok-clone-storage/*",
+            }
+        ],
+    }
+    iam.put_role_policy(
+        RoleName=role_name,
+        PolicyName="SageMakerS3Access",
+        PolicyDocument=json.dumps(sagemaker_s3_access_policy),
+    )
+    iam.put_role_policy(
+        RoleName=role_name,
+        PolicyName="SageMakerSNSAccess",
+        PolicyDocument=json.dumps(sagemaker_sns_access_policy),
+    )
+    iam.put_role_policy(
+        RoleName=role_name,
+        PolicyName="S3ContentStorageGetObjects",
+        PolicyDocument=json.dumps(s3_content_storage_get_objects_policy),
+    )
 except iam.exceptions.EntityAlreadyExistsException:
     print(f"Role {role_name} already exists")
     role = iam.get_role(RoleName=role_name)["Role"]["Arn"]
+except Exception as e:
+    raise e
 
 # Upload model to S3:
 with tarfile.open("model.tar.gz", "w:gz") as tar:
@@ -58,7 +108,7 @@ with tarfile.open("model.tar.gz", "w:gz") as tar:
 model_url = sagemaker.Session(default_bucket="tiktok-clone-sagemaker").upload_data(
     path="model.tar.gz",
     bucket="tiktok-clone-sagemaker",
-    key_prefix="content-analysis/models",
+    key_prefix="content-analysis/model",
 )
 
 # Create SageMaker model:
@@ -66,8 +116,8 @@ async_config = AsyncInferenceConfig(
     output_path="s3://tiktok-clone-sagemaker/content-analysis/outputs",
     failure_path="s3://tiktok-clone-sagemaker/content-analysis/failures",
     notification_config={
-        "SuccessTopic": "arn:aws:sns:us-east-1:751439179750:content-analysis-sagemaker",
-        "ErrorTopic": "arn:aws:sns:us-east-1:751439179750:content-analysis-sagemaker",
+        "SuccessTopic": "arn:aws:sns:us-east-1:751439179750:content-analysis",
+        "ErrorTopic": "arn:aws:sns:us-east-1:751439179750:content-analysis",
     },
 )
 model = PyTorchModel(
@@ -84,10 +134,12 @@ predictor = model.deploy(
     endpoint_name="content-analysis",
     initial_instance_count=1,
     instance_type="ml.t2.medium",
-    async_inference_config=async_config,
+    # async_inference_config=async_config,
     serializer=JSONSerializer(),
     deserializer=JSONDeserializer(),
 )
+
+print(predictor)
 
 # sagemaker_runtime = boto3.client("sagemaker-runtime", region_name="us-east-1")
 # data = {"inputs": np.random.rand(2, 2).tolist()}
@@ -99,7 +151,6 @@ predictor = model.deploy(
 #     Body=bytes(json.dumps(data), encoding="utf-8"),
 # )
 # response["Body"].read().decode("utf-8")
-
 
 # response = sagemaker_runtime.invoke_endpoint_async(
 #     EndpointName="content-analysis-async",

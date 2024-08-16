@@ -90,6 +90,15 @@ Resources:
               security:
                 - cognito: []
               responses: {}
+          /content-properties:
+            post:
+              x-amazon-apigateway-integration:
+                httpMethod: POST
+                type: aws_proxy
+                uri: !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${UpdateContentProperties.Arn}/invocations
+              security:
+                - cognito: []
+              responses: {}
 
   CreateContent:
     Type: AWS::Serverless::Function
@@ -170,6 +179,26 @@ Resources:
             Path: /follow
             Method: POST
             RestApiId: !Ref ApiGateway
+
+  UpdateContentProperties:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: neptune-update-content-properties
+      Role: !ImportValue lambda-execution-role-arn
+      CodeUri:
+        Bucket: tiktok-clone-infra
+        Key: apis/src/UpdateContentProperties/handler.zip
+      Events:
+        ApiGatewayUpdateContentProperties:
+          Type: Api
+          Properties:
+            Path: /content-properties
+            Method: POST
+            RestApiId: !Ref ApiGateway
+        ContentPropertiesSNSTopic:
+          Type: SNS
+          Properties:
+            Topic: !ImportValue content-analysis-sns-topic
 
 Outputs:
   ApiGatewayEndpoint:

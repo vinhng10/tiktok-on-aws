@@ -1,5 +1,6 @@
 # This is the script that will be used in the inference container
 import json
+import boto3
 import torch
 from train import DummyModel
 
@@ -16,7 +17,9 @@ def model_fn(model_dir, context):
 
 def input_fn(request_body, request_content_type, context):
     assert request_content_type == "application/json"
-    data = json.loads(request_body)["inputs"]
+    s3 = boto3.client("s3")
+    data = json.loads(request_body)
+    s3.download_file(data["bucket"], data["key"], data["key"].split("/")[-1])
     data = torch.tensor(data, dtype=torch.float32, device=device)
     return data
 

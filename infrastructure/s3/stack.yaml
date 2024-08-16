@@ -17,7 +17,7 @@ Resources:
       CorsConfiguration:
         CorsRules:
           - AllowedHeaders:
-              - '*'
+              - "*"
             AllowedMethods:
               - GET
               - PUT
@@ -36,19 +36,39 @@ Resources:
         EventBridgeConfiguration:
           EventBridgeEnabled: true
 
-  SageMakerBucket:
-    Type: AWS::S3::Bucket
+  InvokeContentAnalysisEndpointRole:
+    Type: AWS::IAM::Role
     Properties:
-      BucketName: tiktok-clone-sagemaker
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Path: /
+      Policies:
+        - PolicyName: InvokeContentAnalysisEndpointPolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:PutObject
+                Resource: arn:aws:s3:::tiktok-clone-sagemaker/content-analysis/inputs/*
+              - Effect: Allow
+                Action:
+                  - sagemaker:InvokeEndpointAsync
+                Resource: !Sub arn:aws:sagemaker:${AWS::Region}:${AWS::AccountId}:endpoint/content-analysis
 
-  CallContentAnalysis:
+  InvokeContentAnalysisEndpoint:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: s3-call-content-analysis-endpoint
+      FunctionName: invoke-content-analysis-endpoint
       CodeUri:
         Bucket: tiktok-clone-infra
-        Key: s3/src/CallContentAnalysis/handler.zip
-      Tracing: Active
+        Key: s3/src/InvokeContentAnalysisEndpoint/handler.zip
+      Role: !GetAtt InvokeContentAnalysisEndpointRole.Arn
       Events:
         ContentStorageBucket:
           Type: S3
@@ -61,60 +81,12 @@ Resources:
                 Rules:
                   - Name: suffix
                     Value: .mp4
-      Environment:
-        Variables:
-          CONTENTANALYSIS_QUEUE_NAME: !GetAtt ContentAnalysisQueue.QueueName
-          CONTENTANALYSIS_QUEUE_ARN: !GetAtt ContentAnalysisQueue.Arn
-          CONTENTANALYSIS_QUEUE_URL: !Ref ContentAnalysisQueue
-      Policies:
-        - SQSSendMessagePolicy:
-            QueueName: !GetAtt ContentAnalysisQueue.QueueName
 
-  CallContentAnalysisLogGroup:
+  InvokeContentAnalysisEndpointLogGroup:
     Type: AWS::Logs::LogGroup
     DeletionPolicy: Retain
     Properties:
-      LogGroupName: !Sub /aws/lambda/${CallContentAnalysis}
-
-  ContentAnalysisQueue:
-    Type: AWS::SQS::Queue
-    Properties:
-      QueueName: content-analysis
-      VisibilityTimeout: 180
-
-  ContentAnalysis:
-    Type: AWS::Serverless::Function
-    Properties:
-      FunctionName: content-analysis
-      CodeUri:
-        Bucket: tiktok-clone-infra
-        Key: s3/src/ContentAnalysis/handler.zip
-      Tracing: Active
-      Events:
-        ContentAnalysisQueue:
-          Type: SQS
-          Properties:
-            Queue: !GetAtt ContentAnalysisQueue.Arn
-            BatchSize: 1
-      Environment:
-        Variables:
-          SAGEMAKER_BUCKET_NAME: !Ref SageMakerBucket
-          SAGEMAKER_BUCKET_ARN: !GetAtt SageMakerBucket.Arn
-      Policies:
-        - Statement:
-            - Effect: Allow
-              Action:
-                - s3:GetObject
-                - s3:PutObject
-              Resource:
-                - !Sub arn:${AWS::Partition}:s3:::${SageMakerBucket}
-                - !Sub arn:${AWS::Partition}:s3:::${SageMakerBucket}/*
-
-  ContentAnalysisLogGroup:
-    Type: AWS::Logs::LogGroup
-    DeletionPolicy: Retain
-    Properties:
-      LogGroupName: !Sub /aws/lambda/${ContentAnalysis}
+      LogGroupName: !Sub /aws/lambda/${InvokeContentAnalysisEndpoint}
 
 Outputs:
   BucketName:
@@ -122,23 +94,5 @@ Outputs:
     Value: !Ref ContentStorageBucket
     Export:
       Name: content-storage-bucket
-
-  QueueURL:
-    Description: URL of Content Analysis Queue
-    Value: !Ref ContentAnalysisQueue
-    Export:
-      Name: content-analysis-queue-url
-
-  QueueARN:
-    Description: ARN of Content Analysis Queue
-    Value: !GetAtt ContentAnalysisQueue.Arn
-    Export:
-      Name: content-analysis-queue-arn
-
-  QueueName:
-    Description: Name of Content Analysis Queue
-    Value: !GetAtt ContentAnalysisQueue.QueueName
-    Export:
-      Name: content-analysis-queue-name
 
 Transform: AWS::Serverless-2016-10-31
