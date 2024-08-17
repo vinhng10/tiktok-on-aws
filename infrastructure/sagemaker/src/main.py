@@ -128,7 +128,6 @@ model = PyTorchModel(
     entry_point="inference.py",
     framework_version="2.3",
     py_version="py311",
-    sagemaker_session=sagemaker.Session(default_bucket="tiktok-clone-sagemaker"),
 )
 predictor = model.deploy(
     endpoint_name="content-analysis",
@@ -140,19 +139,3 @@ predictor = model.deploy(
 )
 
 print(predictor)
-
-# sagemaker_runtime = boto3.client("sagemaker-runtime", region_name="us-east-1")
-# data = {"inputs": np.random.rand(2, 2).tolist()}
-# response = predictor.predict_async(data)
-
-# response = sagemaker_runtime.invoke_endpoint(
-#     EndpointName="content-analysis",
-#     ContentType="application/json",
-#     Body=bytes(json.dumps(data), encoding="utf-8"),
-# )
-# response["Body"].read().decode("utf-8")
-
-# response = sagemaker_runtime.invoke_endpoint_async(
-#     EndpointName="content-analysis-async",
-#     InputLocation="s3://tiktok-clone-sagemaker/input.json",
-# )

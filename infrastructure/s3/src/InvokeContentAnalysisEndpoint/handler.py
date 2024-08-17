@@ -27,7 +27,7 @@ def handler(event, context):
         )
         response = sagemaker.invoke_endpoint_async(
             EndpointName="content-analysis",
-            InputLocation=f"s3://tiktok-clone-sagemaker/{key}",
+            InputLocation=f"s3://tiktok-clone-sagemaker/{input_key}",
             InvocationTimeoutSeconds=3
         )
         return response
