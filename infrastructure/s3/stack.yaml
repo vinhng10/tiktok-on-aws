@@ -1,5 +1,13 @@
 AWSTemplateFormatVersion: 2010-09-09
-Description: CloudFormation template to create an S3 bucket with specific CORS configuration and block all public access.
+Description: CloudFormation template to create an S3 bucket with specific CORS
+  configuration and block all public access.
+
+Globals:
+  Function:
+    MemorySize: 128
+    Handler: handler.handler
+    Runtime: python3.11
+    Timeout: 30
 
 Resources:
   ContentStorageBucket:
@@ -17,7 +25,7 @@ Resources:
               - DELETE
               - HEAD
             AllowedOrigins:
-              - "http://localhost:5173"
+              - http://localhost:5173
             MaxAge: 3000
       PublicAccessBlockConfiguration:
         BlockPublicAcls: true
@@ -28,9 +36,63 @@ Resources:
         EventBridgeConfiguration:
           EventBridgeEnabled: true
 
+  InvokeContentAnalysisEndpointRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Path: /
+      Policies:
+        - PolicyName: InvokeContentAnalysisEndpointPolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:PutObject
+                Resource: arn:aws:s3:::tiktok-clone-sagemaker/content-analysis/inputs/*
+              - Effect: Allow
+                Action:
+                  - sagemaker:InvokeEndpointAsync
+                Resource: !Sub arn:aws:sagemaker:${AWS::Region}:${AWS::AccountId}:endpoint/content-analysis
+
+  InvokeContentAnalysisEndpoint:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: invoke-content-analysis-endpoint
+      CodeUri:
+        Bucket: tiktok-clone-infra
+        Key: s3/src/InvokeContentAnalysisEndpoint/handler.zip
+      Role: !GetAtt InvokeContentAnalysisEndpointRole.Arn
+      Events:
+        ContentStorageBucket:
+          Type: S3
+          Properties:
+            Bucket: !Ref ContentStorageBucket
+            Events:
+              - s3:ObjectCreated:*
+            Filter:
+              S3Key:
+                Rules:
+                  - Name: suffix
+                    Value: .mp4
+
+  InvokeContentAnalysisEndpointLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Retain
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${InvokeContentAnalysisEndpoint}
+
 Outputs:
   BucketName:
     Description: The name of S3 bucket for content storage
     Value: !Ref ContentStorageBucket
     Export:
       Name: content-storage-bucket
+
+Transform: AWS::Serverless-2016-10-31

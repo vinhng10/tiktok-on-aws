@@ -48,26 +48,6 @@ Resources:
     Properties:
       CodeUri: Follow/
 
-  ApiGatewayRole:
-    Type: AWS::IAM::Role
-    Properties:
-      AssumeRolePolicyDocument:
-        Version: "2012-10-17"
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service: apigateway.amazonaws.com
-            Action: sts:AssumeRole
-      Policies:
-        - PolicyName: ApiGatewayS3Policy
-          PolicyDocument:
-            Version: "2012-10-17"
-            Statement:
-              - Effect: Allow
-                Action:
-                  - s3:PutObject
-                Resource: "*"
-
   Api:
     Type: AWS::Serverless::Api
     Properties:

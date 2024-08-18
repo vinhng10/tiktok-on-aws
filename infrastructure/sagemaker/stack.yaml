@@ -1,0 +1,30 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Resources:
+  # S3 Buckets
+  SageMakerBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: tiktok-clone-sagemaker
+
+  # SNS Topic
+  ContentAnalysisSNSTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: content-analysis-sagemaker
+      DisplayName: Content Analysis Endpoint Topic
+
+Outputs:
+  BucketName:
+    Description: The name of S3 bucket for sagemaker
+    Value: !Ref SageMakerBucket
+    Export:
+      Name: sagemaker-bucket
+
+  SNSTopicARN:
+    Description: ARN of the Content Analysis SNS Topic
+    Value: !Ref ContentAnalysisSNSTopic
+    Export:
+      Name: content-analysis-sns-topic
+
+Transform: AWS::Serverless-2016-10-31
